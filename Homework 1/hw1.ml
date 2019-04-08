@@ -80,80 +80,54 @@ let awksub_rules =
     Num, [T"8"];
     Num, [T"9"]]
 
-(* function that given a set of rules and a starting point, add all rules with that starting
-point as their LHS *)
-let rec allRulesWithGivenStartingPoint start rules resultList = match rules with
-	[] -> resultList
-	| _ -> 
-		match (start = (fst (List.hd rules))) with
-		true -> allRulesWithGivenStartingPoint start (List.tl rules) (List.cons (List.hd rules) resultList)
-		| false -> allRulesWithGivenStartingPoint start (List.tl rules) resultList
-(*
-	let x = allRulesWithGivenStartingPoint Sentence rules [];;
-	returns: [(Sentence, [N NP; N Verb]); (Sentence, [N NP; N Verb; N NP])]
-*)
+(* functions that only returns the rules with a given starting symbol as their LHS *)
+let allRulesWithGivenStartingPoint start rules =
+	List.filter (fun rule -> (fst rule = start)) rules
 
 let isNonterminalSymbol x = match x with
 	N nonterminal -> true
 	| T terminal -> false
 
-(* function that concatenates a bunch of lists *)
+let filterListForOnlyNTsymbols inputList =
+	List.filter isNonterminalSymbol inputList
+
 let rec concatenateLists matchingRules outputList = match matchingRules with
 	[] -> outputList
 	| _ -> 
 		let currList = (snd (List.hd matchingRules)) in
 		concatenateLists (List.tl matchingRules) (outputList @ currList)
 
-let filterListForOnlyNTsymbols inputList =
-	List.filter isNonterminalSymbol inputList
-
-(* function that takes in startPoint, and returns [startPoint; NT symbols in LHS] *)
-(* takes in Sentence and returns [N Sentence; N NP; N Verb; N NP; N Verb; N NP] *)
+(* function that takes in startPoint and rules, and returns [startPoint; NT symbols in RHS for that point] *)
+(* for example, takes in Sentence and returns [N Sentence; N NP; N Verb; N NP; N Verb; N NP] *)
 let allDirectNTsymbolsGivenStart start listOfRules =
-	let matchingRules = allRulesWithGivenStartingPoint start listOfRules [] in
-	(* matchingRules = [(Sentence, [N NP; N Verb]); (Sentence, [N NP; N Verb; N NP])] *)
-	let allSymbolsInTheRHS = concatenateLists matchingRules [] in
-	(* now filter the list *)
-	let filteredSymbolsInTheRHS = filterListForOnlyNTsymbols allSymbolsInTheRHS in
-	(* filteredSymbolsInTheRHS = [N NP; N Verb; N NP; N Verb; N NP] *)
-	List.cons (N start) filteredSymbolsInTheRHS (* add the start point *)
+	let matchingRules = allRulesWithGivenStartingPoint start listOfRules in (* get only the rules starting with 'start' *)
+	let allSymbolsInTheRHS = concatenateLists matchingRules [] in (* get every symbol in the RHS of those rules *)
+	let filteredSymbolsInTheRHS = filterListForOnlyNTsymbols allSymbolsInTheRHS in (* filter out any T symbols *)
+	List.cons (N start) filteredSymbolsInTheRHS (* add the start point to the list *)
 
 let symbolName x = match x with
 	N nonterminal -> nonterminal
 	(* | T terminal -> terminal *)
 
-(* now we need a function that given an input list such as [N Sentence; N NP; N Verb], *)
-(* it calls allDirectNTsymbolsGivenStart for each entry in the list, and then appends their lists *)
+(* given an input list such as [N Sentence; N NP; N Verb] *)
+(* this function calls allDirectNTsymbolsGivenStart for each entry in the list, and then concatenates their lists *)
 let rec findAllReachableNTforGivenList inputList listOfRules outputList = match inputList with
 	[] -> outputList
 	| _ ->
 		let currSymbols = allDirectNTsymbolsGivenStart (symbolName (List.hd inputList)) listOfRules in
 		findAllReachableNTforGivenList (List.tl inputList) listOfRules (outputList @ currSymbols)
 
-let helperFunc inputList listOfRules =
-	findAllReachableNTforGivenList inputList listOfRules []
-	
+(* recursively finds all reachable NT symbols until they all have been found *)
 let reachableNonterminals inputList listOfRules =
-	(* findAllReachableNTforGivenList inputList listOfRules [];; *)
 	computed_fixed_point equal_sets (fun list -> (findAllReachableNTforGivenList list listOfRules [])) inputList
 
-(*
-(* takes in Sentence, [N NP; N Verb; N NP] *)
-(* returns true if (N Sentence is in reachable) *)
-let isReachable rule reachableNTs = 
-	let lhs = (N (fst rule)) in
-	List.mem lhs reachableNTs
-*)
+let filterOutUnreachable reachableNTs grammarRules =
+	List.filter (fun rule -> let lhs = (N (fst rule)) in List.mem lhs reachableNTs) grammarRules
 
 let filter_reachable g =
-	let startSymbol = (N (fst g)) in
+	let startSymbol = (fst g) in
 	let grammarRules = (snd g) in
-	let reachableNTs = reachableNonterminals [startSymbol] grammarRules in
-	(  (fst g)   , List.filter (fun rule -> 
-					let lhs = (N (fst rule)) in
-					List.mem lhs reachableNTs) grammarRules )
+	let reachableNTs = reachableNonterminals [N startSymbol] grammarRules in
+	(startSymbol, filterOutUnreachable reachableNTs grammarRules)
 
-
-	(* forogt to include starting point *)
-
-
+(* move symbol name down *)
