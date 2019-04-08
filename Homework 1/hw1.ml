@@ -40,46 +40,6 @@ type ('nonterminal, 'terminal) symbol =
   | N of 'nonterminal
   | T of 'terminal
 
-type nonterminals =
-  | Sentence | Noun | NP | Verb | Adjective | Adverb
-
-let rules =
-  [Sentence, [N NP; N Verb; N NP];
-   Sentence, [N NP; N Verb];
-   NP, [N Adjective; N Noun];
-   NP, [N Noun];
-   Noun, [T"apple"];
-   Noun, [T"Paul"; T"Eggert"];
-   Verb, [T"love"];
-   Adjective, [T"crispy"];
-   Adverb, [T"happily"]]
-
-type awksub_nonterminals =
-  | Expr | Lvalue | Incrop | Binop | Num
-
-let awksub_rules =
-   [Expr, [T"("; N Expr; T")"];
-    Expr, [N Num];
-    Expr, [N Expr; N Binop; N Expr];
-    Expr, [N Lvalue];
-    Expr, [N Incrop; N Lvalue];
-    Expr, [N Lvalue; N Incrop];
-    Lvalue, [T"$"; N Expr];
-    Incrop, [T"++"];
-    Incrop, [T"--"];
-    Binop, [T"+"];
-    Binop, [T"-"];
-    Num, [T"0"];
-    Num, [T"1"];
-    Num, [T"2"];
-    Num, [T"3"];
-    Num, [T"4"];
-    Num, [T"5"];
-    Num, [T"6"];
-    Num, [T"7"];
-    Num, [T"8"];
-    Num, [T"9"]]
-
 (* functions that only returns the rules with a given starting symbol as their LHS *)
 let allRulesWithGivenStartingPoint start rules =
 	List.filter (fun rule -> (fst rule = start)) rules
@@ -107,7 +67,7 @@ let allDirectNTsymbolsGivenStart start listOfRules =
 
 let symbolName x = match x with
 	N nonterminal -> nonterminal
-	(* | T terminal -> terminal *)
+	| _ -> failwith "Error: only nonterminal symbols should be given to this function"
 
 (* given an input list such as [N Sentence; N NP; N Verb] *)
 (* this function calls allDirectNTsymbolsGivenStart for each entry in the list, and then concatenates their lists *)
@@ -129,5 +89,3 @@ let filter_reachable g =
 	let grammarRules = (snd g) in
 	let reachableNTs = reachableNonterminals [N startSymbol] grammarRules in
 	(startSymbol, filterOutUnreachable reachableNTs grammarRules)
-
-(* move symbol name down *)
