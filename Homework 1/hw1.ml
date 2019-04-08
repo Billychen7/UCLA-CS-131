@@ -35,3 +35,107 @@ let rec computed_fixed_point eq f x =
 		x
 	else
 		computed_fixed_point eq f (f x)
+
+type ('nonterminal, 'terminal) symbol =
+  | N of 'nonterminal
+  | T of 'terminal
+
+type nonterminals =
+  | Sentence | Noun | NP | Verb | Adjective | Adverb
+
+let rules =
+  [Sentence, [N NP; N Verb; N NP];
+   Sentence, [N NP; N Verb];
+   NP, [N Adjective; N Noun];
+   NP, [N Noun];
+   Noun, [T"apple"];
+   Noun, [T"Paul"; T"Eggert"];
+   Verb, [T"love"];
+   Adjective, [T"crispy"];
+   Adverb, [T"happily"]]
+
+type awksub_nonterminals =
+  | Expr | Lvalue | Incrop | Binop | Num
+
+let awksub_rules =
+   [Expr, [T"("; N Expr; T")"];
+    Expr, [N Num];
+    Expr, [N Expr; N Binop; N Expr];
+    Expr, [N Lvalue];
+    Expr, [N Incrop; N Lvalue];
+    Expr, [N Lvalue; N Incrop];
+    Lvalue, [T"$"; N Expr];
+    Incrop, [T"++"];
+    Incrop, [T"--"];
+    Binop, [T"+"];
+    Binop, [T"-"];
+    Num, [T"0"];
+    Num, [T"1"];
+    Num, [T"2"];
+    Num, [T"3"];
+    Num, [T"4"];
+    Num, [T"5"];
+    Num, [T"6"];
+    Num, [T"7"];
+    Num, [T"8"];
+    Num, [T"9"]]
+
+(* function that given a set of rules and a starting point, add all rules with that starting
+point as their LHS *)
+let rec allRulesWithGivenStartingPoint start rules resultList = match rules with
+	[] -> resultList
+	| _ -> 
+		match (start = (fst (List.hd rules))) with
+		true -> allRulesWithGivenStartingPoint start (List.tl rules) (List.cons (List.hd rules) resultList)
+		| false -> allRulesWithGivenStartingPoint start (List.tl rules) resultList
+(*
+	let x = allRulesWithGivenStartingPoint Sentence rules [];;
+	returns: [(Sentence, [N NP; N Verb]); (Sentence, [N NP; N Verb; N NP])]
+*)
+
+let isNonterminalSymbol x = match x with
+	N nonterminal -> true
+	| T terminal -> false
+
+(* function that concatenates a bunch of lists *)
+let rec concatenateLists matchingRules outputList = match matchingRules with
+	[] -> outputList
+	| _ -> 
+		let currList = (snd (List.hd matchingRules)) in
+		concatenateLists (List.tl matchingRules) (outputList @ currList)
+
+let filterListForOnlyNTsymbols inputList =
+	List.filter isNonterminalSymbol inputList
+
+(* function that takes in startPoint, and returns [startPoint; NT symbols in LHS] *)
+(* takes in Sentence and returns [N Sentence; N NP; N Verb; N NP; N Verb; N NP] *)
+let allDirectNTsymbolsGivenStart start listOfRules =
+	let matchingRules = allRulesWithGivenStartingPoint start listOfRules [] in
+	(* matchingRules = [(Sentence, [N NP; N Verb]); (Sentence, [N NP; N Verb; N NP])] *)
+	let allSymbolsInTheRHS = concatenateLists matchingRules [] in
+	(* now filter the list *)
+	let filteredSymbolsInTheRHS = filterListForOnlyNTsymbols allSymbolsInTheRHS in
+	(* filteredSymbolsInTheRHS = [N NP; N Verb; N NP; N Verb; N NP] *)
+	List.cons (N start) filteredSymbolsInTheRHS (* add the start point *)
+
+let symbolName x = match x with
+	N nonterminal -> nonterminal
+	| T terminal -> terminal
+
+(* now we need a function that given an input list such as [N Sentence; N NP; N Verb], *)
+(* it calls allDirectNTsymbolsGivenStart for each entry in the list, and then appends their lists *)
+let rec findAllReachableNTforGivenList inputList listOfRules outputList = match inputList with
+	[] -> outputList
+	| _ ->
+		let currSymbols = allDirectNTsymbolsGivenStart (symbolName (List.hd inputList)) listOfRules in
+		findAllReachableNTforGivenList (List.tl inputList) listOfRules (outputList @ currSymbols)
+
+let reachableNonterminals inputList listOfRules =
+	(* findAllReachableNTforGivenList inputList listOfRules [];; *)
+	computed_fixed_point equal_sets (fun list -> (findAllReachableNTforGivenList list listOfRules [])) inputList
+
+
+(* i think the fix is to store just the string part *)
+
+
+
