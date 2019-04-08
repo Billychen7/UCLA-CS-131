@@ -120,7 +120,7 @@ let allDirectNTsymbolsGivenStart start listOfRules =
 
 let symbolName x = match x with
 	N nonterminal -> nonterminal
-	| T terminal -> terminal
+	(* | T terminal -> terminal *)
 
 (* now we need a function that given an input list such as [N Sentence; N NP; N Verb], *)
 (* it calls allDirectNTsymbolsGivenStart for each entry in the list, and then appends their lists *)
@@ -129,6 +129,12 @@ let rec findAllReachableNTforGivenList inputList listOfRules outputList = match 
 	| _ ->
 		let currSymbols = allDirectNTsymbolsGivenStart (symbolName (List.hd inputList)) listOfRules in
 		findAllReachableNTforGivenList (List.tl inputList) listOfRules (outputList @ currSymbols)
+
+let helperFunc inputList listOfRules =
+	findAllReachableNTforGivenList inputList listOfRules []
+	
+
+
 
 let reachableNonterminals inputList listOfRules =
 	(* findAllReachableNTforGivenList inputList listOfRules [];; *)
