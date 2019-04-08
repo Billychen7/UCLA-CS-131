@@ -133,15 +133,27 @@ let rec findAllReachableNTforGivenList inputList listOfRules outputList = match 
 let helperFunc inputList listOfRules =
 	findAllReachableNTforGivenList inputList listOfRules []
 	
-
-
-
 let reachableNonterminals inputList listOfRules =
 	(* findAllReachableNTforGivenList inputList listOfRules [];; *)
 	computed_fixed_point equal_sets (fun list -> (findAllReachableNTforGivenList list listOfRules [])) inputList
 
+(*
+(* takes in Sentence, [N NP; N Verb; N NP] *)
+(* returns true if (N Sentence is in reachable) *)
+let isReachable rule reachableNTs = 
+	let lhs = (N (fst rule)) in
+	List.mem lhs reachableNTs
+*)
 
-(* i think the fix is to store just the string part *)
+let filter_reachable g =
+	let startSymbol = (N (fst g)) in
+	let grammarRules = (snd g) in
+	let reachableNTs = reachableNonterminals [startSymbol] grammarRules in
+	(  (fst g)   , List.filter (fun rule -> 
+					let lhs = (N (fst rule)) in
+					List.mem lhs reachableNTs) grammarRules )
 
+
+	(* forogt to include starting point *)
 
 
