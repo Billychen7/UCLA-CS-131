@@ -1,0 +1,25 @@
+NAME: Bradley Mont
+EMAIL: bradleymont@gmail.com
+ID: 804993030
+
+My Approach to filter_reachable:
+
+For filter_reachable, I accomplished it in two main steps:
+1. Recursively find every reachable nonterminal symbol for the given grammar.
+2. Filter the grammar rules by only including rules whose right-hand side is equal to one of the items in my list from step 1.
+
+For part 1, I created a function called allDirectNTsymbolsGivenStart that takes in a starting point and rules as parameters, and then returns a list of all the reachable NT symbols in the right-hand sides of all of the rules with that starting point. I accomplish this by first filtering the rules for only those whose right-hand side matches the start, then concatenating all their right-hand sides into 1 list, then filtering out all terminal symbols, and then finally adding the starting point to the list as well.
+
+I then have a function findAllReachableNTforGivenList that takes a list of nonterminal symbols, recursively calls allDirectNTsymbolsGivenStart for each element, and then concatenates their lists. So this function finds all nonterminals directly attainable by a list.
+
+Finally, to get the reachable nonterminals, I call computed_fixed_point with equal_sets as the equality predicate, a function that calls findAllReachableNTforGivenList, and then a list consisting of just the starting point. This will keep recursively adding reachable nonterminal symbols until there are no more to add (a fixed point is found). 
+
+I then just filter the grammar rules based on the criteria that each rule must be in the list of reachable nonterminals.
+
+Other Approaches I considered and rejected:
+
+I considered not using computed_fixed_point, but then I didn't know when to stop recursively trying to add more reachable nonterminal symbols.
+
+Weaknesses:
+
+I am not aware of any weaknesses in my solution.
