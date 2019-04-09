@@ -1,7 +1,3 @@
-NAME: Bradley Mont
-EMAIL: bradleymont@gmail.com
-ID: 804993030
-
 Homework 1. Fixpoints and grammar filters
 
 My Approach to filter_reachable:
