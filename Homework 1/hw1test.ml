@@ -1,10 +1,3 @@
-(*
-Supply at least one test case for each of the above functions in the style shown in the sample test cases below. 
-When testing the function F call the test cases my_F_test0, my_F_test1, etc. 
-For example, for subset your first test case should be called my_subset_test0. 
-Your test cases should exercise all the above functions, even though the sample test cases do not.
-*)
-
 (* subset test cases *)
 let my_subset_test0 = subset [] []
 let my_subset_test1 = subset [] [4;5;6]
@@ -15,7 +8,7 @@ let my_subset_test5 = subset [6;5;4;5;6] [4;5;6]
 let my_subset_test6 = subset [5;4;5] [4;5;6]
 let my_subset_test7 = not (subset [4;5;6] [4;5;5])
 let my_subset_test8 = subset ["a";"b"] ["a";"b";"c"]
-let my_subset_test8 = not (subset ["a";"b";"c"] ["a";"c"])
+let my_subset_test9 = not (subset ["a";"b";"c"] ["a";"c"])
 
 (* equal_sets test cases *)
 let my_equal_sets_test0 = equal_sets [] []
@@ -63,9 +56,88 @@ let my_set_diff_test9 = equal_sets (set_diff ["a";"b";"c"] ["a"]) ["b";"c"]
 let my_computed_fixed_point_test0 = computed_fixed_point (=) (fun x -> 2) 5 = 2
 let my_computed_fixed_point_test1 = computed_fixed_point (=) (fun x -> x *. x) 5. = infinity
 let my_computed_fixed_point_test2 = computed_fixed_point (=) (fun x -> ~- x) 0 = 0
+let my_computed_fixed_point_test3 = equal_sets (computed_fixed_point equal_sets (fun x -> set_union x [5]) [2]) [5;2]
+let my_computed_fixed_point_test4 = computed_fixed_point (=) (fun x -> x / 10) 100000 = 0
 
+(* filter_reachable test cases *)
 
+(* sample English grammar *)
+type englishNonterminals =
+  | Sentence | NP | Noun | Verb | Adjective | Adverb
 
+let basicGrammarRules =
+  [Sentence, [N NP; N Verb; N NP];
+   Sentence, [N NP; N Verb];
+   NP, [N Noun];
+   Noun, [T"Bradley"];
+   Verb, [T"loves"]]
 
+let basicGrammar = Sentence, basicGrammarRules
 
+let my_filter_reachable_test0 = filter_reachable basicGrammar = basicGrammar
 
+let my_filter_reachable_test1 = filter_reachable (NP, basicGrammarRules) = 
+	(NP,
+		[NP, [N Noun];
+   		Noun, [T"Bradley"]]
+	)
+
+let moreAdvancedGrammarRules =
+  [Sentence, [N NP; N Verb; N NP];
+   Sentence, [N NP; N Verb];
+   NP, [N Adjective; N Noun];
+   NP, [N Noun];
+   Noun, [T"OCaml"];
+   Noun, [T"Bradley"; T"Mont"];
+   Verb, [T"loves"];
+   Adjective, [T"happy"]]
+
+let moreAdvancedGrammar = Sentence, moreAdvancedGrammarRules
+
+let my_filter_reachable_test2 = filter_reachable moreAdvancedGrammar = moreAdvancedGrammar
+
+let my_filter_reachable_test3 = filter_reachable (NP, moreAdvancedGrammarRules) =
+	(NP,
+	   [NP, [N Adjective; N Noun];
+	   NP, [N Noun];
+	   Noun, [T"OCaml"];
+	   Noun, [T"Bradley"; T"Mont"];
+	   Adjective, [T"happy"]]
+	)
+
+let unreachableGrammarRules =
+  [Sentence, [N NP; N Verb; N NP];
+   Sentence, [N NP; N Verb];
+   NP, [N Adjective; N Noun];
+   NP, [N Noun];
+   Noun, [T"OCaml"];
+   Noun, [T"Bradley"; T"Mont"];
+   Verb, [T"loves"];
+   Adjective, [T"happy"];
+   Adverb, [T"thoroughly"]]
+
+let unreachableGrammar = Sentence, unreachableGrammarRules
+
+let my_filter_reachable_test4 = filter_reachable unreachableGrammar = 
+	(Sentence,
+	   [Sentence, [N NP; N Verb; N NP];
+   	   Sentence, [N NP; N Verb];
+	   NP, [N Adjective; N Noun];
+	   NP, [N Noun];
+	   Noun, [T"OCaml"];
+	   Noun, [T"Bradley"; T"Mont"];
+	   Verb, [T"loves"];
+	   Adjective, [T"happy"]]
+	)
+
+let my_filter_reachable_test5 = filter_reachable (NP, unreachableGrammarRules) =
+	(NP,
+	   [NP, [N Adjective; N Noun];
+	   NP, [N Noun];
+	   Noun, [T"OCaml"];
+	   Noun, [T"Bradley"; T"Mont"];
+	   Adjective, [T"happy"]]
+	)
+
+let my_filter_reachable_test6 = filter_reachable (Adverb, unreachableGrammarRules) =
+	(Adverb, [Adverb, [T"thoroughly"]])
