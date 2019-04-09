@@ -69,7 +69,7 @@ let basicGrammarRules =
   [Sentence, [N NP; N Verb; N NP];
    Sentence, [N NP; N Verb];
    NP, [N Noun];
-   Noun, [T"Bradley"];
+   Noun, [T"FirstName"];
    Verb, [T"loves"]]
 
 let basicGrammar = Sentence, basicGrammarRules
@@ -79,7 +79,7 @@ let my_filter_reachable_test0 = filter_reachable basicGrammar = basicGrammar
 let my_filter_reachable_test1 = filter_reachable (NP, basicGrammarRules) = 
 	(NP,
 		[NP, [N Noun];
-   		Noun, [T"Bradley"]]
+   		Noun, [T"FirstName"]]
 	)
 
 let moreAdvancedGrammarRules =
@@ -88,7 +88,7 @@ let moreAdvancedGrammarRules =
    NP, [N Adjective; N Noun];
    NP, [N Noun];
    Noun, [T"OCaml"];
-   Noun, [T"Bradley"; T"Mont"];
+   Noun, [T"FirstName"; T"LastName"];
    Verb, [T"loves"];
    Adjective, [T"happy"]]
 
@@ -101,7 +101,7 @@ let my_filter_reachable_test3 = filter_reachable (NP, moreAdvancedGrammarRules) 
 	   [NP, [N Adjective; N Noun];
 	   NP, [N Noun];
 	   Noun, [T"OCaml"];
-	   Noun, [T"Bradley"; T"Mont"];
+	   Noun, [T"FirstName"; T"LastName"];
 	   Adjective, [T"happy"]]
 	)
 
@@ -111,7 +111,7 @@ let unreachableGrammarRules =
    NP, [N Adjective; N Noun];
    NP, [N Noun];
    Noun, [T"OCaml"];
-   Noun, [T"Bradley"; T"Mont"];
+   Noun, [T"FirstName"; T"LastName"];
    Verb, [T"loves"];
    Adjective, [T"happy"];
    Adverb, [T"thoroughly"]]
@@ -125,7 +125,7 @@ let my_filter_reachable_test4 = filter_reachable unreachableGrammar =
 	   NP, [N Adjective; N Noun];
 	   NP, [N Noun];
 	   Noun, [T"OCaml"];
-	   Noun, [T"Bradley"; T"Mont"];
+	   Noun, [T"FirstName"; T"LastName"];
 	   Verb, [T"loves"];
 	   Adjective, [T"happy"]]
 	)
@@ -135,7 +135,7 @@ let my_filter_reachable_test5 = filter_reachable (NP, unreachableGrammarRules) =
 	   [NP, [N Adjective; N Noun];
 	   NP, [N Noun];
 	   Noun, [T"OCaml"];
-	   Noun, [T"Bradley"; T"Mont"];
+	   Noun, [T"FirstName"; T"LastName"];
 	   Adjective, [T"happy"]]
 	)
 
