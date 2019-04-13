@@ -86,37 +86,28 @@ type ('nonterminal, 'terminal) parse_tree =
   | Leaf of 'terminal
 
 
-let rec processChildrenList = function
-  | [] -> []
-  | (h::t) -> (parse_tree_leaves h) @ (processChildrenList t)
-and parse_tree_leaves = function
-  | Leaf terminalSymbol -> [terminalSymbol]
-  | Node (nontermSymbol, childrenHead::childrenTail) -> (parse_tree_leaves childrenHead) @ (processChildrenList childrenTail)
 
+let rec parse_tree_leaves = function
+  | Leaf terminalSymbol -> [terminalSymbol]
+  | Node (_, childrenHead::childrenTail) -> (parse_tree_leaves childrenHead) @ (parse_node_children childrenTail)
+  | _ -> []
+and parse_node_children = function
+  | [] -> []
+  | (h::t) -> (parse_tree_leaves h) @ (parse_node_children t)
 
 (*
 parse_tree_leaves (Node ("+", [Leaf 3; Node ("*", [Leaf 4; Leaf 5; Leaf 6])]))
 *)
 
-
-
-
 (*
-example:
-
 (Node ("*", [Leaf 4; Leaf 5]))
-
 *)
-
-
-
 
 (* (Node ("+", [Leaf 3; Node ("*", [Leaf 4; Leaf 5])]))    *)
 
-
-
-
-
+(*
+ptl (Node (0, [Node(1, [Leaf "a"; Leaf "b"]); Node(2, [Leaf "c"; Node(3, [Leaf "d"; Leaf "e"])]); Node(4, [Leaf "f"; Leaf "g"])]));;
+*)
 
 
 
