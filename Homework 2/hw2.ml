@@ -17,7 +17,6 @@ let rules =
    Adjective, [T"crispy"]]
   *)
 
-
 type awksub_nonterminals =
   | Expr | Term | Lvalue | Incrop | Binop | Num
 
@@ -45,7 +44,7 @@ let awksub_rules =
     Num, [T"8"];
     Num, [T"9"]]
 
-let awkish_grammar =
+let gram =
   (Expr,
    function
      | Expr ->
@@ -68,6 +67,22 @@ let awkish_grammar =
      | Num ->
 	 [[T"0"]; [T"1"]; [T"2"]; [T"3"]; [T"4"];
 	  [T"5"]; [T"6"]; [T"7"]; [T"8"]; [T"9"]])
+
+type nonterms =
+  | PHRASE | NOUN | VERB
+
+let kimmogram = 
+  (PHRASE,
+   function
+     | PHRASE -> [[N NOUN; N VERB]]
+     | NOUN -> [[T "mary"];[T "mark"]]
+     | VERB -> [[T "eats"];[T "drinks"]])
+
+let kimaccept = function 
+  | "pizza"::t -> Some ("pizza"::t) 
+  | _ -> None
+
+let kimmofrag = ["mark"; "eats"; "pizza"]
 
 (* function that takes in a NT value and returns its alternative list *)
 let productionFunc listOfRules nontermVal =
@@ -100,6 +115,50 @@ and parse_node_children = function
 
 
 
+
+
+
+let start = Expr
+let prodFunc = snd gram
+let frag = ["9"; "+"; "$"; "1"; "+"]
+
+let accept_all string = Some string
+
+let altList = prodFunc start (* [[N Term; N Binop; N Expr]; [N Term]] *)
+
+
+let rec parse_alternative_list prodFunc startSymbol altList accept frag =
+  match altList with
+  | [] -> None (* we've exhausted all the rules and didn't find a match *)
+  | (firstRule::otherRules) ->
+    let resultOfParseRule = parse_rule prodFunc firstRule accept frag in
+    match resultOfParseRule with
+    | None -> parse_alternative_list prodFunc startSymbol otherRules accept frag (* try the next rule *)
+    | Some x -> Some x
+
+and parse_rule prodFunc currRule accept frag =
+  match currRule with
+  | [] -> accept frag (* we've matched up all the symbols of the rule *)
+  | (firstSymbol::otherSymbols) ->
+    match firstSymbol with
+    | (N nonterminalSym) ->
+      let curriedAcceptor = parse_rule prodFunc otherSymbols accept in
+      parse_alternative_list prodFunc nonterminalSym (prodFunc nonterminalSym) curriedAcceptor frag
+    | (T terminalSym) ->
+      match frag with
+      | [] -> None (* found a symbol with no symbols left in the fragment to match it, so backtrack *)
+      | (fragHead::fragTail) ->
+        match (terminalSym = fragHead) with
+        | true -> parse_rule prodFunc otherSymbols accept fragTail (* found a match, now check rest of frag *)
+        | false -> None (* backtrack *)
+
+let make_matcher gram =
+  let startSymbol = (fst gram)
+  and prodFunc = (snd gram) in
+  let altList = (prodFunc startSymbol) in
+  (fun accept frag -> parse_alternative_list prodFunc startSymbol altList accept frag)
+
+
 (*
 parse_tree_leaves (Node ("+", [Leaf 3; Node ("*", [Leaf 4; Leaf 5; Leaf 6])]))
 *)
@@ -119,9 +178,9 @@ ptl (Node (0, [Node(1, [Leaf "a"; Leaf "b"]); Node(2, [Leaf "c"; Node(3, [Leaf "
 (* currDerivation = startsymbol *)
 (* currDerivation = [Expr] *)
 
-
+(*
 let accept_all string = Some string
-
+*)
 (*
 let accept = accept_all
 *)
@@ -134,6 +193,15 @@ let frag = ["9"; "+"; "$"; "1"; "+"]
 let altList = prodFunc start (* [[N Term; N Binop; N Expr]; [N Term]] *)
 *)
 
+
+
+
+
+
+
+
+(*
+
 let rec parse_alternative_list prodFunc accept frag altList =
   match altList with
   | [] -> None (* no more valid rules - backtrack *)
@@ -145,7 +213,7 @@ let rec parse_alternative_list prodFunc accept frag altList =
 
 and parse_right_hand_side prodFunc accept frag altList currRHS = 
   match currRHS with
-  | [] -> accept frag (* we've found a match - call acceptor *) (* IDK *)
+  | [] -> accept (List.tl frag) (* we've found a match - call acceptor *) (* IDK *)
   | (firstSymbol::otherSymbols) -> parse_symbol prodFunc accept frag altList currRHS firstSymbol
 
 and parse_symbol prodFunc accept frag altList currRHS currSymbol =
@@ -153,7 +221,10 @@ and parse_symbol prodFunc accept frag altList currRHS currSymbol =
     | (N nonterminalSym) -> parse_alternative_list prodFunc accept frag (prodFunc nonterminalSym) (* parse that symbol's alt list *)
     | (T terminalSym) ->
       match (terminalSym = (List.hd frag)) with
-        | true -> accept (List.tl frag) (* pass the suffix to the acceptor *)
+        | true -> Some "I DONT UNDERSTAND WHAT TO RETURN"
+            (* we reach this point when we've derived "mark" but we need "mark eats" *)
+            (* we have to do something with the tail of the fragment *)
+          accept (List.tl frag) (* pass the suffix to the acceptor *)
         | false -> 
           match altList with
             | [] -> None
@@ -171,7 +242,7 @@ let make_matcher gram =
   (fun accept frag -> parse_alternative_list prodFunc accept frag altList)
 
 
-
+*)
 
 (*
 
