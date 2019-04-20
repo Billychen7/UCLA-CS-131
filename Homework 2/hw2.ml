@@ -68,8 +68,9 @@ let gram =
 	 [[T"0"]; [T"1"]; [T"2"]; [T"3"]; [T"4"];
 	  [T"5"]; [T"6"]; [T"7"]; [T"8"]; [T"9"]])
 
+(*
 type nonterms =
-  | PHRASE | NOUN | VERB
+  | PHRASE | NOUN | VERB 
 
 let kimmogram = 
   (PHRASE,
@@ -84,6 +85,8 @@ let kimaccept = function
   | "pizza"::t -> Some ("pizza"::t) 
   | _ -> None
 
+
+*)
 
 
 (* function that takes in a NT value and returns its alternative list *)
@@ -174,14 +177,21 @@ let rec parse_alternative_list_tree prodFunc startSymbol altList accept frag tre
     | None -> parse_alternative_list_tree prodFunc startSymbol otherRules accept frag treeChildren (* try the next rule *)
     | Some x -> Some x
 
+
+
+
 and parse_rule_tree prodFunc startSymbol currRule accept frag treeChildren =
   match currRule with
-  | [] -> accept frag [Node(startSymbol, treeChildren)]
+  | [] -> accept frag (Node(startSymbol, treeChildren))
   | (firstSymbol::otherSymbols) ->
     match firstSymbol with
     | (N nonterminalSym) ->
-      let curriedAcceptor = parse_rule_tree prodFunc startSymbol otherSymbols accept in
-      parse_alternative_list_tree prodFunc nonterminalSym (prodFunc nonterminalSym) curriedAcceptor frag treeChildren
+      (* let curriedAcceptor = parse_rule_tree prodFunc startSymbol otherSymbols accept in *)
+
+      let curriedAcceptor frag2 tree2 =
+        parse_rule_tree prodFunc startSymbol otherSymbols accept frag2 (treeChildren @ [tree2]) in
+      
+      parse_alternative_list_tree prodFunc nonterminalSym (prodFunc nonterminalSym) curriedAcceptor frag []
       (* the [] should prob be replaced with the treeChildren itself *)
     | (T terminalSym) ->
       match frag with
@@ -189,15 +199,29 @@ and parse_rule_tree prodFunc startSymbol currRule accept frag treeChildren =
       | (fragHead::fragTail) ->
         match (terminalSym = fragHead) with
         | true -> parse_rule_tree prodFunc startSymbol otherSymbols accept fragTail (treeChildren @ [Leaf terminalSym])
+        | false -> None (* backtrack *)
+
+
+let make_parser gram =
+  let startSymbol = (fst gram)
+  and prodFunc = (snd gram) in
+  let altList = (prodFunc startSymbol) in
+  (fun frag -> parse_alternative_list_tree prodFunc startSymbol altList parse_tree_acceptor frag [])
+
+
+
+
+
+type nonterms = 
+| PHRASE | NOUN
 
 let g = 
   (PHRASE,
    function
-     | PHRASE -> [[N NOUN; N VERB]]
-     | NOUN -> [[T "mark"]]
-     | VERB -> [[T "eats"]])
+     | PHRASE -> [[N NOUN]]
+     | NOUN -> [[T "mark"]])
 
-let f = ["mark"; "eats"]
+let f = ["mark"]
 
 let startSymbol = PHRASE
 let prodFunc = snd g
