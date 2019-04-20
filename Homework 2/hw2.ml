@@ -78,11 +78,13 @@ let kimmogram =
      | NOUN -> [[T "mary"];[T "mark"]]
      | VERB -> [[T "eats"];[T "drinks"]])
 
+let kimmofrag = ["mark"; "eats"; "pizza"]
+
 let kimaccept = function 
   | "pizza"::t -> Some ("pizza"::t) 
   | _ -> None
 
-let kimmofrag = ["mark"; "eats"; "pizza"]
+
 
 (* function that takes in a NT value and returns its alternative list *)
 let productionFunc listOfRules nontermVal =
@@ -116,7 +118,7 @@ and parse_node_children = function
 
 
 
-
+(*
 
 let start = Expr
 let prodFunc = snd gram
@@ -125,7 +127,7 @@ let frag = ["9"; "+"; "$"; "1"; "+"]
 let accept_all string = Some string
 
 let altList = prodFunc start (* [[N Term; N Binop; N Expr]; [N Term]] *)
-
+*)
 
 let rec parse_alternative_list prodFunc startSymbol altList accept frag =
   match altList with
@@ -163,39 +165,43 @@ let parse_tree_acceptor frag tree =
   | [] -> Some tree
   | _ -> None
 
-let rec parse_alternative_list_tree prodFunc startSymbol altList accept frag tree =
+let rec parse_alternative_list_tree prodFunc startSymbol altList accept frag treeChildren =
   match altList with 
   | [] -> None (* we've exhausted all the rules and didn't find a parse tree *)
   | (firstRule::otherRules) ->
-    let resultOfParseRuleTree = parse_rule_tree prodFunc firstRule accept frag tree in
+    let resultOfParseRuleTree = parse_rule_tree prodFunc startSymbol firstRule accept frag treeChildren in
     match resultOfParseRuleTree with
-    | None -> parse_alternative_list_tree prodFunc startSymbol otherRules accept frag tree (* try the next rule *)
+    | None -> parse_alternative_list_tree prodFunc startSymbol otherRules accept frag treeChildren (* try the next rule *)
     | Some x -> Some x
 
-and parse_rule_tree prodFunc startSymbol currRule accept frag tree =
+and parse_rule_tree prodFunc startSymbol currRule accept frag treeChildren =
   match currRule with
-  | [] -> accept frag Node(startSymbol, tree)
+  | [] -> accept frag [Node(startSymbol, treeChildren)]
   | (firstSymbol::otherSymbols) ->
     match firstSymbol with
     | (N nonterminalSym) ->
       let curriedAcceptor = parse_rule_tree prodFunc startSymbol otherSymbols accept in
-      parse_alternative_list_tree prodFunc nonterminalSym (prodFunc nonterminalSym) curriedAcceptor frag []
+      parse_alternative_list_tree prodFunc nonterminalSym (prodFunc nonterminalSym) curriedAcceptor frag treeChildren
+      (* the [] should prob be replaced with the treeChildren itself *)
     | (T terminalSym) ->
       match frag with
       | [] -> None (* backtrack *)
       | (fragHead::fragTail) ->
         match (terminalSym = fragHead) with
-        | true -> parse_rule_tree prodFunc startSymbol otherSymbols accept fragTail (tree @ [Leaf terminalSym])
-        | false -> None (* backtrack *)
+        | true -> parse_rule_tree prodFunc startSymbol otherSymbols accept fragTail (treeChildren @ [Leaf terminalSym])
 
+let g = 
+  (PHRASE,
+   function
+     | PHRASE -> [[N NOUN; N VERB]]
+     | NOUN -> [[T "mark"]]
+     | VERB -> [[T "eats"]])
 
+let f = ["mark"; "eats"]
 
-
-
-
-
-
-
+let startSymbol = PHRASE
+let prodFunc = snd g
+let altList = prodFunc startSymbol
 
 
 
