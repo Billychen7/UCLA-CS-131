@@ -158,155 +158,45 @@ let make_matcher gram =
   let altList = (prodFunc startSymbol) in
   (fun accept frag -> parse_alternative_list prodFunc startSymbol altList accept frag)
 
+let parse_tree_acceptor frag tree =
+  match frag with
+  | [] -> Some tree
+  | _ -> None
 
-(*
-parse_tree_leaves (Node ("+", [Leaf 3; Node ("*", [Leaf 4; Leaf 5; Leaf 6])]))
-*)
+let rec parse_alternative_list_tree prodFunc startSymbol altList accept frag tree =
+  match altList with 
+  | [] -> None (* we've exhausted all the rules and didn't find a parse tree *)
+  | (firstRule::otherRules) ->
+    let resultOfParseRuleTree = parse_rule_tree prodFunc firstRule accept frag tree in
+    match resultOfParseRuleTree with
+    | None -> parse_alternative_list_tree prodFunc startSymbol otherRules accept frag tree (* try the next rule *)
+    | Some x -> Some x
 
-(*
-(Node ("*", [Leaf 4; Leaf 5]))
-*)
-
-(* (Node ("+", [Leaf 3; Node ("*", [Leaf 4; Leaf 5])]))    *)
-
-(*
-ptl (Node (0, [Node(1, [Leaf "a"; Leaf "b"]); Node(2, [Leaf "c"; Node(3, [Leaf "d"; Leaf "e"])]); Node(4, [Leaf "f"; Leaf "g"])]));;
-*)
-
-
-
-(* currDerivation = startsymbol *)
-(* currDerivation = [Expr] *)
-
-(*
-let accept_all string = Some string
-*)
-(*
-let accept = accept_all
-*)
-
-(*
-let start = Expr
-let prodFunc = snd gram
-let frag = ["9"; "+"; "$"; "1"; "+"]
-
-let altList = prodFunc start (* [[N Term; N Binop; N Expr]; [N Term]] *)
-*)
-
-
-
-
-
-
-
-
-(*
-
-let rec parse_alternative_list prodFunc accept frag altList =
-  match altList with
-  | [] -> None (* no more valid rules - backtrack *)
-  | (firstRule::otherRules) -> 
-    let returnValOfParseRHS = parse_right_hand_side prodFunc accept frag altList firstRule in
-    match returnValOfParseRHS with
-      | None -> parse_alternative_list prodFunc accept frag otherRules (* no matches found for current rule (head) *)
-      | Some x -> Some x
-
-and parse_right_hand_side prodFunc accept frag altList currRHS = 
-  match currRHS with
-  | [] -> accept (List.tl frag) (* we've found a match - call acceptor *) (* IDK *)
-  | (firstSymbol::otherSymbols) -> parse_symbol prodFunc accept frag altList currRHS firstSymbol
-
-and parse_symbol prodFunc accept frag altList currRHS currSymbol =
-  match currSymbol with 
-    | (N nonterminalSym) -> parse_alternative_list prodFunc accept frag (prodFunc nonterminalSym) (* parse that symbol's alt list *)
+and parse_rule_tree prodFunc startSymbol currRule accept frag tree =
+  match currRule with
+  | [] -> accept frag Node(startSymbol, tree)
+  | (firstSymbol::otherSymbols) ->
+    match firstSymbol with
+    | (N nonterminalSym) ->
+      let curriedAcceptor = parse_rule_tree prodFunc startSymbol otherSymbols accept in
+      parse_alternative_list_tree prodFunc nonterminalSym (prodFunc nonterminalSym) curriedAcceptor frag []
     | (T terminalSym) ->
-      match (terminalSym = (List.hd frag)) with
-        | true -> Some "I DONT UNDERSTAND WHAT TO RETURN"
-            (* we reach this point when we've derived "mark" but we need "mark eats" *)
-            (* we have to do something with the tail of the fragment *)
-          accept (List.tl frag) (* pass the suffix to the acceptor *)
-        | false -> 
-          match altList with
-            | [] -> None
-            | (firstRule::otherRules) -> parse_alternative_list prodFunc accept frag otherRules
-          (* basically try the next rule *)
-          (* pass in LOL with T"1" as head *)
-          (* if list is empty, return None *)
-
-
-
-let make_matcher gram =
-  let startSymbol = (fst gram)
-  and prodFunc = (snd gram) in
-  let altList = (prodFunc startSymbol) in
-  (fun accept frag -> parse_alternative_list prodFunc accept frag altList)
-
-
-*)
-
-(*
-
-let symbolName x = match x with
-  N nonterminal -> nonterminal
-  | _ -> failwith "Error: only nonterminal symbols should be given to this function"
-
-let isNonterminalSymbol x = match x with
-  N nonterminal -> true
-  | T terminal -> false
-
-let start = [N Expr]
-let prodFunc = snd gram
-
-let leftmostNTsym elementList =
-  List.find_opt isNonterminalSymbol elementList
-
-(*
-["0"; N Expr; N Num]
-*)
-
-let applyRule currElement prodFunc =
-  let alternativeList = prodFunc (symbolName currElement) in
-  let firstRule = List.hd alternativeList in
-  firstRule
-
-
-(* returns [] if no NT symbols *)
-let rec replaceLeftmostNTsym firstHalf secondHalf prodFunc =
-  match secondHalf with
-    | [] -> []
-    | _ -> 
-      let currElement = List.hd secondHalf in
-      match (isNonterminalSymbol currElement) with
-        | false -> replaceLeftmostNTsym (firstHalf @ [currElement]) (List.tl secondHalf) prodFunc
-        | true -> firstHalf @ (applyRule currElement prodFunc) @ (List.tl secondHalf)
-
-
-
-let start2 = [N Term]
-
-let rec parse_rules currDerivation prodFunc =
-  let leftmostNTsymbol = leftmostNTsym currDerivation in
-
-  match (isNonterminalSymbol (List.hd currDerivation)) with
-    | false -> currDerivation
-    | true ->
-      match leftmostNTsymbol with
-        | Some symbol -> 
-          let nextDerivation = replaceLeftmostNTsym [] currDerivation prodFunc in
-          parse_rules nextDerivation prodFunc
-        | None -> currDerivation
+      match frag with
+      | [] -> None (* backtrack *)
+      | (fragHead::fragTail) ->
+        match (terminalSym = fragHead) with
+        | true -> parse_rule_tree prodFunc startSymbol otherSymbols accept fragTail (tree @ [Leaf terminalSym])
+        | false -> None (* backtrack *)
 
 
 
 
 
 
-(*
-let make_matcher gram =
-  let startSymbol = (fst gram) in
-*)
 
-*)
+
+
+
 
 
 
