@@ -1,0 +1,86 @@
+I decided to write make_parser in terms of make_matcher, but I never
+explicitly used the make_matcher function in my implementation for
+make_parser. First off, I implemented make_parser in terms of make_matcher
+because I thought of a parser as a somewhat specialized version of a matcher.
+Specifically, like a matcher, a parser also uses an acceptor which takes a
+fragment, but a parser always uses the same acceptor: an acceptor that only
+accepts an empty suffix. This is the only acceptor that works for a parser
+because if we're passing a non-empty suffix to the acceptor, that means that
+the fragment hasn't fully been parsed (so we would return None in that case).
+
+However, a parser returns a parse tree instead of what a make_matcher 
+acceptor returns, so I also changed my make_parser acceptor to accept a parse
+tree and then return that parse tree if the fragment also passed to the 
+acceptor is empty. Therefore, I had to add an extra parameter to my
+auxiliary functions for make_parser to keep track of the current parse tree,
+which I didn't have to keep track of in make_matcher. Therefore, since
+make_parser just required an extra parameter to keep track of and a 
+specialized acceptor function, I chose to first implement make_matcher and
+then implement make_parser in terms of make_matcher.
+
+I wasn't able to devise a solution that explicitly uses make_matcher in 
+make_parser, so that could be considered a weakness in terms of 
+duplicated code. My auxiliary functions for make_matcher and for
+make_parser do have similar structures, so maybe I could've
+combined them somehow to avoid duplicated code. However, it is evident
+that my make_parser solution is based on my make_matcher situation,
+so I did use make_matcher to implement make_parser.
+
+In the context of its intended application, my solution does contain some
+weaknesses. For example, consider the following example:
+
+type nonterminals =
+  | S | A | B
+
+let production_function = function
+	| S -> 
+		[[N A; N B]]
+	| A ->
+		[[N B];
+		 [T "a"]]
+	| B ->
+		[[N A];
+		 [T "b"]]
+
+let english_grammar = S, production_function
+
+let accept_all x = Some x
+
+let test = make_matcher english_grammar accept_all ["a"]
+
+This code will result in an infinite loop because my implementation has no
+mechanism for checking when two nonterminal symbols recursively have rules
+that become each other. For example, when we reach N A, we will use the rule
+(A -> [N B]) to derive A to B. Then, we will use B's rule (B -> [N A]) to 
+derive B back to A. This infinite process will continue until a stack overflow
+error occurs because my code doesn't check for infinite loops. Additionally,
+consider the following code:
+
+type nonterminals =
+  | S | A | B
+
+let production_function = function
+	| S -> 
+		[[N S; N A]]
+	| A ->
+		[[N B];
+		 [T "a"]]
+	| B ->
+		[[T "b"]]
+
+let english_grammar = S, production_function
+
+let accept_all x = Some x
+
+let test = make_matcher english_grammar accept_all ["a"]
+
+Instead of having two nonterminals whose rules become each other, this grammar
+contains one rule S, whose first symbol in its first rule is itself.
+Therefore, we start at S, and then apply its first rule to become [S ; A].
+Then we apply the leftmost symbol's first rule, so that S becomes [S ; A], and
+so on. So if we start with S, the code will infinitely keep deriving the 
+leftmost S to become S and A and will eventually cause a stack overflow error.
+
+Overall, my solution contains weaknesses because it goes into an infinite loop
+when given a grammar that has 2 nonterminals that become each other, or one
+nonterminal whose rule contains itself.
