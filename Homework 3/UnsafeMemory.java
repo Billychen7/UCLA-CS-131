@@ -56,7 +56,7 @@ class UnsafeMemory {
 		for (int i = 0; i < nThreads; i++) {
 		    int threadTransitions =
 			(nTransitions / nThreads
-			 + (i < nTransitions % nThreads ? 1 : 0)); //amount of work done by each thread
+			 + (i < nTransitions % nThreads ? 1 : 0));
 		    t[i] = new Thread (new SwapTest (threadTransitions, s));
 		}
 		long start = System.nanoTime(); //keep track of time

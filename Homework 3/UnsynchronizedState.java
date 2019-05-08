@@ -10,7 +10,7 @@ class UnsynchronizedState implements State {
 
     public byte[] current() { return value; }
 
-    public boolean swap(int i, int j) { //removed synchronized keyword in swap method
+    public boolean swap(int i, int j) {
     	if (value[i] <= 0 || value[j] >= maxval) {
     	    return false;
     	}
