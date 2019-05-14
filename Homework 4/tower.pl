@@ -11,13 +11,32 @@ basic_grid_restrictions(GridSize,Row) :-
 % C's arguments are lists of N integers, representing the
 % tower counts for top, bottom, left, right respectively
 
-%think about optimizing this later - in terms of rows vs columns
-test(N,T) :-
-    N >= 0,
-    length(T,N),
-    maplist(basic_grid_restrictions(N),T), %impose basic restrictions upon the rows
-    transpose(T,T_transpose),
-    maplist(basic_grid_restrictions(N),T_transpose). %impose basic restrictions upon the columns
+
+
+
+
+
+
+% we'll call it initially with numVisible([1,2,3],1,NumVis)
+
+add_one(X,X_plus_one) :-
+    X_plus_one is X + 1.
+
+
+numVisible([],_,_).
+
+numVisible([Front|Back],MaxHeight,NumVis) :-
+    Front > MaxHeight,
+    add_one(NumVis,NumVisPlusOne),
+    numVisible(Back,Front,NumVisPlusOne).
+
+
+
+/*
+
+checkLeft([LeftHead|LeftTail],T) :-
+
+
 
 
 tower(N,T,C) :-
@@ -29,6 +48,47 @@ tower(N,T,C) :-
 
     C = counts(Top,Bottom,Left,Right),
     Top = 0, Bottom = 0, Left = 0, Right = 0.
+
+
+
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%think about optimizing this later - in terms of rows vs columns
+test(N,T) :-
+    N >= 0,
+    length(T,N),
+    maplist(basic_grid_restrictions(N),T), %impose basic restrictions upon the rows
+    transpose(T,T_transpose),
+    maplist(basic_grid_restrictions(N),T_transpose). %impose basic restrictions upon the columns
+
+
+
+
+
+
+
+
 
 
 /* MATRIX TRANSFORMATION IMPLEMENTATION */
