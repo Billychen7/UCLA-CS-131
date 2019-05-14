@@ -1,3 +1,5 @@
+% think about removing the cuts - i put them so it wouldn't prompt for other solutions
+
 basic_grid_restrictions(GridSize,Row) :-
     length(Row,GridSize), %each list in T is of length N
     fd_domain(Row,1,GridSize), %each list in T contains integers from 1 to N
@@ -14,18 +16,10 @@ basic_grid_restrictions(GridSize,Row) :-
 
 
 
-
-
-
-
-
-
-
-
-
 % we'll call it initially with tower_count([1,2,3],0,X).
 
 /* TOWER COUNT IMPLEMENTATION */
+% tower_count(Row, Default Max Height = 0, Number of Visible Towers)
 
 % base case for tower_count
 tower_count([],_,0).
@@ -44,26 +38,19 @@ tower_count([Front|Back],MaxHeight,NumVisible) :-
 /* END TOWER COUNT IMPLEMENTATION */
 
 
+% check_forward([3,1,2],[[1,2,3],[3,1,2],[2,3,1]]).
+
+check_forward([],[]).
+
+check_forward([LeftHead|LeftTail],[CurrRow|OtherRows]) :-
+    tower_count(CurrRow,0,LeftHead),
+    check_forward(LeftTail,OtherRows).
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-
-checkLeft([LeftHead|LeftTail],T) :-
-
+check_backward(Right,T) :-
+    maplist(reverse,T,RevT),
+    check_forward(Right,RevT).
 
 
 
@@ -75,11 +62,14 @@ tower(N,T,C) :-
     maplist(basic_grid_restrictions(N),T_transpose), %impose basic restrictions upon the columns
 
     C = counts(Top,Bottom,Left,Right),
-    Top = 0, Bottom = 0, Left = 0, Right = 0.
+    check_forward(Top,T_transpose),
+    check_backward(Bottom,T_transpose),
+    check_forward(Left,T),
+    check_backward(Right,T).
 
 
 
-*/
+
 
 
 
