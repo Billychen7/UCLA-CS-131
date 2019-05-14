@@ -17,18 +17,46 @@ basic_grid_restrictions(GridSize,Row) :-
 
 
 
-% we'll call it initially with tower_count([1,2,3],1,NumVisible).
 
-subtract_one(X,X_minus_one) :-
-    X - X_minus_one #= 1.
 
-tower_count([],_,_).
 
+
+
+
+% we'll call it initially with tower_count([1,2,3],0,X).
+
+/* TOWER COUNT IMPLEMENTATION */
+
+% base case for tower_count
+tower_count([],_,0).
+
+% rule for when the current tower is greater than all previous towers
 tower_count([Front|Back],MaxHeight,NumVisible) :-
-    Front >= MaxHeight,
-    subtract_one(NumVisible,NumVisibleMinusOne),
-    fd_labeling(NumVisibleMinusOne),
-    tower_count(Back,Front,NumVisibleMinusOne),!.
+    Front #> MaxHeight,
+    NumVisMinusOne #= NumVisible - 1,
+    tower_count(Back,Front,NumVisMinusOne),!.
+
+% rule for when the current tower is not greater than the current max height
+tower_count([Front|Back],MaxHeight,NumVisible) :-
+    Front #< MaxHeight,
+    tower_count(Back,MaxHeight,NumVisible),!.
+
+/* END TOWER COUNT IMPLEMENTATION */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
