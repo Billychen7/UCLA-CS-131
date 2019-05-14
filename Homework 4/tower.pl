@@ -1,27 +1,23 @@
-% think about removing the cuts - i put them so it wouldn't prompt for other solutions
+basic_row_and_col_restrictions(GridSize,RowOrCol) :-
+    length(RowOrCol,GridSize), %each list in T is of length N
+    fd_domain(RowOrCol,1,GridSize), %each list in T contains integers from 1 to N
+    fd_all_different(RowOrCol). %each list in T contains distinct integers
 
 
-
-
-
-basic_grid_restrictions(GridSize,Row) :-
-    length(Row,GridSize), %each list in T is of length N
-    fd_domain(Row,1,GridSize), %each list in T contains integers from 1 to N
-    fd_all_different(Row). %each list in T contains distinct integers
-    %fd_labeling(Row). %find matching solutions (can backtrack to generate new solution)
-
-
-
-
-
-
+length_with_reversed_arguments(N,L) :- length(L,N).
 
 tower(N,T,C) :-
     N >= 0, %N is a nonnegative integer
     length(T,N), % T must contain N lists
-    maplist(basic_grid_restrictions(N),T), %impose basic restrictions upon the rows
+
+
+    %maplist(length_with_reversed_arguments(N),T), %each list in T is of length N
+
+
+
+    maplist(basic_row_and_col_restrictions(N),T), %cimpose basic restrictions upon the rows
     transpose(T,T_transpose),
-    maplist(basic_grid_restrictions(N),T_transpose), %impose basic restrictions upon the columns
+    maplist(basic_row_and_col_restrictions(N),T_transpose), % impose basic restrictions upon the columns
 
     maplist(fd_labeling,T),
     maplist(fd_labeling,T_transpose),
@@ -72,12 +68,12 @@ tower(N,T,C) :-
 check_forward([],[]).
 
 check_forward([LeftHead|LeftTail],[CurrRow|OtherRows]) :-
-tower_count(CurrRow,0,LeftHead),
-check_forward(LeftTail,OtherRows).
+    tower_count(CurrRow,0,LeftHead),
+    check_forward(LeftTail,OtherRows).
 
 check_backward(Right,T) :-
-maplist(reverse,T,RevT),
-check_forward(Right,RevT).
+    maplist(reverse,T,RevT),
+    check_forward(Right,RevT).
 
 /* END RULES TO CHECK TOWER COUNT */
 
@@ -92,14 +88,14 @@ tower_count([],_,0).
 
 % rule for when the current tower is greater than all previous towers
 tower_count([Front|Back],MaxHeight,NumVisible) :-
-Front #> MaxHeight,
-NumVisMinusOne #= NumVisible - 1,
-tower_count(Back,Front,NumVisMinusOne),!.
+    Front #> MaxHeight,
+    NumVisMinusOne #= NumVisible - 1,
+    tower_count(Back,Front,NumVisMinusOne),!.
 
 % rule for when the current tower is not greater than the current max height
 tower_count([Front|Back],MaxHeight,NumVisible) :-
-Front #< MaxHeight,
-tower_count(Back,MaxHeight,NumVisible),!.
+    Front #< MaxHeight,
+    tower_count(Back,MaxHeight,NumVisible),!.
 
 /* END TOWER COUNT IMPLEMENTATION */
 
@@ -169,3 +165,4 @@ transpose(X,[Y_head|Y_tail]) :-
     get_all_list_tails(X,X_tails),
     transpose(X_tails,Y_tail).
 */
+
