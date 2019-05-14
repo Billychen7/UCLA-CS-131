@@ -17,18 +17,18 @@ basic_grid_restrictions(GridSize,Row) :-
 
 
 
-% we'll call it initially with numVisible([1,2,3],1,NumVis)
+% we'll call it initially with tower_count([1,2,3],1,NumVisible).
 
-add_one(X,X_plus_one) :-
-    X_plus_one is X + 1.
+subtract_one(X,X_minus_one) :-
+    X - X_minus_one #= 1.
 
+tower_count([],_,_).
 
-numVisible([],_,_).
-
-numVisible([Front|Back],MaxHeight,NumVis) :-
-    Front > MaxHeight,
-    add_one(NumVis,NumVisPlusOne),
-    numVisible(Back,Front,NumVisPlusOne).
+tower_count([Front|Back],MaxHeight,NumVisible) :-
+    Front >= MaxHeight,
+    subtract_one(NumVisible,NumVisibleMinusOne),
+    fd_labeling(NumVisibleMinusOne),
+    tower_count(Back,Front,NumVisibleMinusOne),!.
 
 
 
