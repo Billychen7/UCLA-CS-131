@@ -168,15 +168,24 @@ plain_tower(N,T,C) :-
     length(Top,N),
     length(Bottom,N),
 
+    /*
     elements_between(Left,1,N),
     elements_between(Right,1,N),
     elements_between(Top,1,N),
     elements_between(Bottom,1,N),
+    */
 
+    /*
     plain_check_forward(Left,T),
     plain_check_backward(Right,T),
     plain_check_forward(Top,T_transpose),
     plain_check_backward(Bottom,T_transpose).
+    */
+
+    plain_check_forward(Left,T,N),
+    plain_check_backward(Right,T,N),
+    plain_check_forward(Top,T_transpose,N),
+    plain_check_backward(Bottom,T_transpose,N).
 
 
 
@@ -201,12 +210,30 @@ plain_tower_count([Front|Back],MaxHeight,NumVisible) :-
 % plain_check_forward([3,1,2],[[1,2,3],[3,1,2],[2,3,1]]).
 
 
+
+/*
 plain_check_forward([],[]).
 
 plain_check_forward([LeftHead|LeftTail],[CurrRow|OtherRows]) :-
+    between(1,)
     plain_tower_count(CurrRow,0,LeftHead),
     plain_check_forward(LeftTail,OtherRows).
 
 plain_check_backward(Right,T) :-
     maplist(reverse,T,RevT),
     plain_check_forward(Right,RevT).
+*/
+
+
+
+
+plain_check_forward([],[],_).
+
+plain_check_forward([LeftHead|LeftTail],[CurrRow|OtherRows],N) :-
+    between(1,N,LeftHead),
+    plain_tower_count(CurrRow,0,LeftHead),
+    plain_check_forward(LeftTail,OtherRows,N).
+
+plain_check_backward(Right,T,N) :-
+    maplist(reverse,T,RevT),
+    plain_check_forward(Right,RevT,N).
