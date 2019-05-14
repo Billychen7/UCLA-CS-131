@@ -1,4 +1,3 @@
-
 basic_grid_restrictions(GridSize,Row) :-
     length(Row,GridSize), %each list in T is of length N
     fd_domain(Row,1,GridSize), %each list in T contains integers from 1 to N
@@ -15,7 +14,9 @@ basic_grid_restrictions(GridSize,Row) :-
 test(N,T) :-
     N >= 0,
     length(T,N),
-    maplist(basic_grid_restrictions(N),T).
+    maplist(basic_grid_restrictions(N),T),
+    %transpose(T,T_transpose),
+    %maplist(basic_grid_restrictions(N),T_transpose).
 
 /*
 tower(N,T,C) :-
@@ -25,3 +26,32 @@ tower(N,T,C) :-
 
     C = counts(Top,Bottom,Left,Right).
 */
+
+/* MATRIX TRANSFORMATION IMPLEMENTATION */
+
+% true if the 2nd parameter contains the heads of all of the lists that the 1st parameter contains
+get_all_list_heads([],[]).
+get_all_list_heads([[FirstListHead|_]|OtherLists], [FirstHead|OtherHeads]) :-
+    FirstListHead = FirstHead,
+    get_all_list_heads(OtherLists,OtherHeads).
+
+% true if the 2nd parameter contains the tails of all of the lists that the 1st parameter contains
+get_all_list_tails([],[]).
+get_all_list_tails([[_|FirstListTail]|OtherLists],[FirstTail|OtherTails]) :-
+    FirstListTail = FirstTail,
+    get_all_list_tails(OtherLists,OtherTails).
+
+emptyList([]).
+
+% this case is necessary because the last recursive call for transpose
+% will look something like the following: transpose([[],[]],[])
+transpose(X,[]) :-
+    maplist(emptyList,X),!. % included a cut because it kept asking for more results
+
+transpose(X,[Y_head|Y_tail]) :-
+    get_all_list_heads(X,X_heads),
+    X_heads = Y_head,
+    get_all_list_tails(X,X_tails),
+    transpose(X_tails,Y_tail).
+
+/* END OF MATRIX TRANSFORMATION IMPLEMENTATION */
