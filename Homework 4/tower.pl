@@ -4,7 +4,7 @@ basic_row_and_col_restrictions(GridSize,RowOrCol) :-
     fd_all_different(RowOrCol). %each list in T contains distinct integers
 
 
-length_with_reversed_arguments(N,L) :- length(L,N).
+%length_with_reversed_arguments(N,L) :- length(L,N).
 
 tower(N,T,C) :-
     N >= 0, %N is a nonnegative integer
@@ -23,10 +23,14 @@ tower(N,T,C) :-
     maplist(fd_labeling,T_transpose),
 
     C = counts(Top,Bottom,Left,Right),
+
+    /*
     length(Top,N),
     length(Bottom,N),
     length(Left,N),
     length(Right,N),
+    */
+
     check_forward(Top,T_transpose),
     check_backward(Bottom,T_transpose),
     check_forward(Left,T),
