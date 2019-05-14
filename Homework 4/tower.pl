@@ -125,6 +125,13 @@ transpose(X,[Y_head|Y_tail]) :-
 
 % starting plain_tower --------------------------------
 
+unique_decreasing_list([],0).
+
+unique_decreasing_list([H|T],N) :-
+    H = N,
+    N_decremented is N - 1,
+    unique_decreasing_list(T,N_decremented).
+
 % from TA Kimmo's slides
 elements_between([],_,_).
 elements_between([H|T],Min,Max) :-
@@ -143,25 +150,34 @@ unique_list(N,L) :-
 
 
 
+
 plain_tower(N,T,C) :-
     N >= 0, % N is a nonnegative integer
     length(T,N), % T must contain N lists
 
-    unique_list(N,UniqueList), % basic unique list, ex: [1,2,3,4]
+    unique_decreasing_list(UniqueList,N),!, % basic unique list, ex: [4,3,2,1]
 
     maplist(permutation(UniqueList),T), % try every possible permutation of the unique list
+
     transpose(T,T_transpose),
     maplist(unique_list(N),T_transpose), % make sure the columns are valid as well
 
     C = counts(Top,Bottom,Left,Right), % check the counts on the edges
-    length(Top,N),
-    length(Bottom,N),
     length(Left,N),
     length(Right,N),
-    plain_check_forward(Left,T,UniqueList),
-    plain_check_backward(Right,T,UniqueList),
-    plain_check_forward(Top,T_transpose,UniqueList),
-    plain_check_backward(Bottom,T_transpose,UniqueList).
+    length(Top,N),
+    length(Bottom,N),
+
+    elements_between(Left,1,N),
+    elements_between(Right,1,N),
+    elements_between(Top,1,N),
+    elements_between(Bottom,1,N),
+
+    plain_check_forward(Left,T),
+    plain_check_backward(Right,T),
+    plain_check_forward(Top,T_transpose),
+    plain_check_backward(Bottom,T_transpose).
+
 
 
 
@@ -184,21 +200,13 @@ plain_tower_count([Front|Back],MaxHeight,NumVisible) :-
 
 % plain_check_forward([3,1,2],[[1,2,3],[3,1,2],[2,3,1]]).
 
-plain_check_forward([],[],_).
 
+plain_check_forward([],[]).
 
-%EligibleCounts: 1-4
-plain_check_forward([LeftHead|LeftTail],[CurrRow|OtherRows],EligibleCounts) :-
-    permutation(EligibleCounts,CurrPerm),
-    nth(1,CurrPerm,CurrLeftHead),
-    LeftHead = CurrLeftHead,
+plain_check_forward([LeftHead|LeftTail],[CurrRow|OtherRows]) :-
     plain_tower_count(CurrRow,0,LeftHead),
-    plain_check_forward(LeftTail,OtherRows,EligibleCounts),!.
+    plain_check_forward(LeftTail,OtherRows).
 
-
-
-
-plain_check_backward(Right,T,EligibleCounts) :-
+plain_check_backward(Right,T) :-
     maplist(reverse,T,RevT),
-    plain_check_forward(Right,RevT,EligibleCounts).
-
+    plain_check_forward(Right,RevT).
