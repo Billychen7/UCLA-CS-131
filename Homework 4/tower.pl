@@ -3,9 +3,6 @@ basic_row_and_col_restrictions(GridSize,RowOrCol) :-
     fd_domain(RowOrCol,1,GridSize), % each list in T contains integers from 1 to N
     fd_all_different(RowOrCol). % each list in T contains distinct integers
 
-
-% I tried only checking for lists of length N once, but it seemed to slow down the program
-
 tower(N,T,C) :-
     N >= 0, % N is a nonnegative integer
     length(T,N), % T must contain N lists
@@ -17,19 +14,12 @@ tower(N,T,C) :-
     maplist(fd_labeling,T),
     maplist(fd_labeling,T_transpose),
 
-    C = counts(Top,Bottom,Left,Right),
-
-    /*
-    length(Top,N),
-    length(Bottom,N),
-    length(Left,N),
-    length(Right,N),
-    */
-
-    check_forward(Top,T_transpose),
-    check_backward(Bottom,T_transpose),
+    C = counts(Top,Bottom,Left,Right), % check the counts on the edges
     check_forward(Left,T),
-    check_backward(Right,T).
+    check_backward(Right,T),
+    check_forward(Top,T_transpose),
+    check_backward(Bottom,T_transpose).
+
 
 
 
@@ -57,8 +47,6 @@ check_backward(Right,T) :-
 /* END RULES TO CHECK TOWER COUNT */
 
 
-
-
 /* TOWER COUNT IMPLEMENTATION */
 % tower_count(Row, Default Max Height = 0, Number of Visible Towers)
 
@@ -81,10 +69,6 @@ tower_count([Front|Back],MaxHeight,NumVisible) :-
 
 
 
-
-
-
-
 /* STACK OVERFLOW MATRIX TRANSPOSITION IMPLEMENTATION */
 
 % transpose implementation taken from https://stackoverflow.com/questions/4280986/how-to-transpose-a-matrix-in-prolog
@@ -103,15 +87,6 @@ lists_firsts_rests([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
     lists_firsts_rests(Rest, Fs, Oss).
 
 /* END STACK OVERFLOW MATRIX TRANSPOSITION IMPLEMENTATION */
-
-
-
-
-
-
-
-
-
 
 
 
@@ -144,4 +119,3 @@ transpose(X,[Y_head|Y_tail]) :-
     get_all_list_tails(X,X_tails),
     transpose(X_tails,Y_tail).
 */
-
