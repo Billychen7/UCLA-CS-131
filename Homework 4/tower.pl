@@ -143,7 +143,7 @@ unique_list(N,L) :-
 
 
 
-plain_tower(N,T) :-
+plain_tower(N,T,C) :-
     N >= 0, % N is a nonnegative integer
     length(T,N), % T must contain N lists
 
@@ -151,12 +151,54 @@ plain_tower(N,T) :-
 
     maplist(permutation(UniqueList),T), % try every possible permutation of the unique list
     transpose(T,T_transpose),
-    maplist(unique_list(N),T_transpose). % make sure the columns are valid as well
+    maplist(unique_list(N),T_transpose), % make sure the columns are valid as well
+
+    C = counts(Top,Bottom,Left,Right), % check the counts on the edges
+    length(Top,N),
+    length(Bottom,N),
+    length(Left,N),
+    length(Right,N),
+    plain_check_forward(Left,T,UniqueList),
+    plain_check_backward(Right,T,UniqueList),
+    plain_check_forward(Top,T_transpose,UniqueList),
+    plain_check_backward(Bottom,T_transpose,UniqueList).
 
 
 
 
+% plain tower count
+
+plain_tower_count([],_,0).
+
+% rule for when the current tower is greater than all previous towers
+plain_tower_count([Front|Back],MaxHeight,NumVisible) :-
+    Front > MaxHeight,
+    NumVisMinusOne is NumVisible - 1,
+    plain_tower_count(Back,Front,NumVisMinusOne),!.
+
+% rule for when the current tower is not greater than the current max height
+plain_tower_count([Front|Back],MaxHeight,NumVisible) :-
+    Front < MaxHeight,
+    plain_tower_count(Back,MaxHeight,NumVisible),!.
+
+
+% plain_check_forward([3,1,2],[[1,2,3],[3,1,2],[2,3,1]]).
+
+plain_check_forward([],[],_).
+
+
+%EligibleCounts: 1-4
+plain_check_forward([LeftHead|LeftTail],[CurrRow|OtherRows],EligibleCounts) :-
+    permutation(EligibleCounts,CurrPerm),
+    nth(1,CurrPerm,CurrLeftHead),
+    LeftHead = CurrLeftHead,
+    plain_tower_count(CurrRow,0,LeftHead),
+    plain_check_forward(LeftTail,OtherRows,EligibleCounts),!.
 
 
 
+
+plain_check_backward(Right,T,EligibleCounts) :-
+    maplist(reverse,T,RevT),
+    plain_check_forward(Right,RevT,EligibleCounts).
 
