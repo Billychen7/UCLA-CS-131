@@ -11,21 +11,25 @@ basic_grid_restrictions(GridSize,Row) :-
 % C's arguments are lists of N integers, representing the
 % tower counts for top, bottom, left, right respectively
 
+%think about optimizing this later - in terms of rows vs columns
 test(N,T) :-
     N >= 0,
     length(T,N),
-    maplist(basic_grid_restrictions(N),T),
-    %transpose(T,T_transpose),
-    %maplist(basic_grid_restrictions(N),T_transpose).
+    maplist(basic_grid_restrictions(N),T), %impose basic restrictions upon the rows
+    transpose(T,T_transpose),
+    maplist(basic_grid_restrictions(N),T_transpose). %impose basic restrictions upon the columns
 
-/*
+
 tower(N,T,C) :-
     N >= 0, %N is a nonnegative integer
     length(T,N), % T must contain N lists
-    maplist(basic_grid_restrictions(N),T), % the lists of T must have N distinct integers from 1 to N
+    maplist(basic_grid_restrictions(N),T), %impose basic restrictions upon the rows
+    transpose(T,T_transpose),
+    maplist(basic_grid_restrictions(N),T_transpose), %impose basic restrictions upon the columns
 
-    C = counts(Top,Bottom,Left,Right).
-*/
+    C = counts(Top,Bottom,Left,Right),
+    Top = 0, Bottom = 0, Left = 0, Right = 0.
+
 
 /* MATRIX TRANSFORMATION IMPLEMENTATION */
 
