@@ -3,6 +3,14 @@ basic_row_and_col_restrictions(GridSize,RowOrCol) :-
     fd_domain(RowOrCol,1,GridSize), % each list in T contains integers from 1 to N
     fd_all_different(RowOrCol). % each list in T contains distinct integers
 
+
+% N is a nonnegative integer specifying the size of the square grid
+% T, a list of N lists, represents each row of the square grid
+% each row is a list of N distinct integers from 1 to N (same with columns)
+% C is a structure with function symbol counts and arity 4
+% C's arguments are lists of N integers, representing the
+% tower counts for top, bottom, left, right respectively
+
 tower(N,T,C) :-
     N >= 0, % N is a nonnegative integer
     length(T,N), % T must contain N lists
@@ -20,16 +28,6 @@ tower(N,T,C) :-
     check_forward(Top,T_transpose),
     check_backward(Bottom,T_transpose).
 
-
-
-
-
-% N is a nonnegative integer specifying the size of the square grid
-% T, a list of N lists, represents each row of the square grid
-% each row is a list of N distinct integers from 1 to N (same with columns)
-% C is a structure with function symbol counts and arity 4
-% C's arguments are lists of N integers, representing the
-% tower counts for top, bottom, left, right respectively
 
 
 /* RULES TO CHECK TOWER COUNT */
@@ -119,3 +117,46 @@ transpose(X,[Y_head|Y_tail]) :-
     get_all_list_tails(X,X_tails),
     transpose(X_tails,Y_tail).
 */
+
+
+
+
+
+
+% starting plain_tower --------------------------------
+
+% from TA Kimmo's slides
+elements_between([],_,_).
+elements_between([H|T],Min,Max) :-
+    between(Min,Max,H),
+    elements_between(T,Min,Max).
+
+all_unique([]).
+all_unique([H|T]) :- member(H,T),!,fail.
+all_unique([_|T]) :- all_unique(T).
+
+% list L has unique elements between 1 and N
+unique_list(N,L) :-
+    length(L,N), % each list in T is of length N
+    elements_between(L,1,N), % each list in T contains integers from 1 to N
+    all_unique(L),!. % each list in T contains distinct integers
+
+
+
+plain_tower(N,T) :-
+    N >= 0, % N is a nonnegative integer
+    length(T,N), % T must contain N lists
+
+    unique_list(N,UniqueList), % basic unique list, ex: [1,2,3,4]
+
+    maplist(permutation(UniqueList),T), % try every possible permutation of the unique list
+    transpose(T,T_transpose),
+    maplist(unique_list(N),T_transpose). % make sure the columns are valid as well
+
+
+
+
+
+
+
+
