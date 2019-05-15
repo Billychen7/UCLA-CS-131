@@ -1,7 +1,42 @@
+% -------------------------------- tower helper predicates --------------------------------
+
 basic_row_and_col_restrictions(GridSize,RowOrCol) :-
     length(RowOrCol,GridSize), % each list in T is of length N
     fd_domain(RowOrCol,1,GridSize), % each list in T contains integers from 1 to N
     fd_all_different(RowOrCol). % each list in T contains distinct integers
+
+/* rules to check tower counts */
+
+check_forward([],[]).
+
+check_forward([LeftHead|LeftTail],[CurrRow|OtherRows]) :-
+    tower_count(CurrRow,0,LeftHead),
+    check_forward(LeftTail,OtherRows).
+
+check_backward(Right,T) :-
+    maplist(reverse,T,RevT),
+    check_forward(Right,RevT).
+
+/* end rules to check tower counts */
+
+
+/* rules to find number of visible towers */
+
+tower_count([],_,0).
+
+tower_count([Front|Back],MaxHeight,NumVisible) :-
+    Front #> MaxHeight,
+    NumVisMinusOne #= NumVisible - 1,
+    tower_count(Back,Front,NumVisMinusOne),!.
+
+tower_count([Front|Back],MaxHeight,NumVisible) :-
+    Front #< MaxHeight,
+    tower_count(Back,MaxHeight,NumVisible),!.
+
+/* end rules to find number of visible towers */
+
+
+% -------------------------------- tower --------------------------------
 
 tower(N,T,C) :-
     N >= 0, % N is a nonnegative integer
@@ -21,45 +56,71 @@ tower(N,T,C) :-
     check_backward(Bottom,T_transpose).
 
 
+% -------------------------------- plain_tower helper predicates --------------------------------
 
-/* RULES TO CHECK TOWER COUNT */
+unique_decreasing_list([],0).
 
-check_forward([],[]).
+unique_decreasing_list([H|T],N) :-
+    H = N,
+    N_decremented is N - 1,
+    unique_decreasing_list(T,N_decremented).
 
-check_forward([LeftHead|LeftTail],[CurrRow|OtherRows]) :-
-    tower_count(CurrRow,0,LeftHead),
-    check_forward(LeftTail,OtherRows).
 
-check_backward(Right,T) :-
+plain_check_count(UniqueList,N,RowOrCol,CountElement) :-
+    permutation(UniqueList,RowOrCol),
+    between(1,N,CountElement),
+    plain_tower_count(RowOrCol,0,CountElement).
+
+
+/* rules to find number of visible towers */
+
+plain_tower_count([],_,0).
+
+plain_tower_count([Front|Back],MaxHeight,NumVisible) :-
+    Front > MaxHeight,
+    NumVisMinusOne is NumVisible - 1,
+    plain_tower_count(Back,Front,NumVisMinusOne).
+
+plain_tower_count([Front|Back],MaxHeight,NumVisible) :-
+    Front < MaxHeight,
+    plain_tower_count(Back,MaxHeight,NumVisible).
+
+/* end rules to find number of visible towers */
+
+
+% -------------------------------- plain_tower --------------------------------
+
+plain_tower(N,T,C) :-
+    N >= 0,
+    length(T,N),
+
+    length(UniqueList,N),
+    unique_decreasing_list(UniqueList,N), % basic unique list, ex: [4,3,2,1]
+
+    C = counts(Top,Bottom,Left,Right),
+    length(Left,N),
+    length(Right,N),
+    length(Top,N),
+    length(Bottom,N),
+
+    maplist(plain_check_count(UniqueList,N),T,Left),
+
     maplist(reverse,T,RevT),
-    check_forward(Right,RevT).
 
-/* END RULES TO CHECK TOWER COUNT */
+    maplist(plain_check_count(UniqueList,N),RevT,Right),
 
+    transpose(T,T_transpose),
 
-/* TOWER COUNT IMPLEMENTATION */
-% tower_count(Row, Default Max Height = 0, Number of Visible Towers)
+    maplist(plain_check_count(UniqueList,N),T_transpose,Top),
 
-% base case for tower_count
-tower_count([],_,0).
+    maplist(reverse,T_transpose,RevT_transpose),
 
-% rule for when the current tower is greater than all previous towers
-tower_count([Front|Back],MaxHeight,NumVisible) :-
-    Front #> MaxHeight,
-    NumVisMinusOne #= NumVisible - 1,
-    tower_count(Back,Front,NumVisMinusOne),!.
-
-% rule for when the current tower is not greater than the current max height
-tower_count([Front|Back],MaxHeight,NumVisible) :-
-    Front #< MaxHeight,
-    tower_count(Back,MaxHeight,NumVisible),!.
-
-/* END TOWER COUNT IMPLEMENTATION */
+    maplist(plain_check_count(UniqueList,N),RevT_transpose,Bottom).
 
 
+% -------------------------------- matrix transposition helper predicate --------------------------------
 
-
-/* STACK OVERFLOW MATRIX TRANSPOSITION IMPLEMENTATION */
+/* stack overflow matrix transposition implementation */
 
 % transpose implementation taken from https://stackoverflow.com/questions/4280986/how-to-transpose-a-matrix-in-prolog
 transpose([], []).
@@ -76,10 +137,7 @@ lists_firsts_rests([], [], []).
 lists_firsts_rests([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
     lists_firsts_rests(Rest, Fs, Oss).
 
-/* END STACK OVERFLOW MATRIX TRANSPOSITION IMPLEMENTATION */
-
-
-
+/* end stack overflow matrix transposition implementation */
 
 /*
 % my own implementation of transpose(X,Y) that is sadly not as efficient as the one on stack overflow
@@ -109,83 +167,3 @@ transpose(X,[Y_head|Y_tail]) :-
     get_all_list_tails(X,X_tails),
     transpose(X_tails,Y_tail).
 */
-
-
-
-
-
-
-
-
-
-
-
-
-% starting plain_tower --------------------------------
-
-unique_decreasing_list([],0).
-
-unique_decreasing_list([H|T],N) :-
-    H = N,
-    N_decremented is N - 1,
-    unique_decreasing_list(T,N_decremented).
-
-
-
-
-
-
-%  LE       RowOrCol
-% ([3,1,2],[[1,2,3],[3,1,2],[2,3,1]]).
-
-idk(UniqueList,N,RowOrCol,LeftElement) :-
-    permutation(UniqueList,RowOrCol),
-    between(1,N,LeftElement),
-    plain_tower_count(RowOrCol,0,LeftElement).
-
-
-
-
-plain_tower(N,T,C) :-
-    N >= 0,
-    length(T,N),
-
-    length(UniqueList,N),
-    unique_decreasing_list(UniqueList,N), % basic unique list, ex: [4,3,2,1]
-
-    C = counts(Top,Bottom,Left,Right),
-    length(Left,N),
-    length(Right,N),
-    length(Top,N),
-    length(Bottom,N),
-
-    maplist(idk(UniqueList,N),T,Left),
-
-    maplist(reverse,T,RevT),
-
-    maplist(idk(UniqueList,N),RevT,Right),
-
-    transpose(T,T_transpose),
-
-    maplist(idk(UniqueList,N),T_transpose,Top),
-
-    maplist(reverse,T_transpose,RevT_transpose),
-
-    maplist(idk(UniqueList,N),RevT_transpose,Bottom).
-
-
-
-% plain tower count
-
-plain_tower_count([],_,0).
-
-% rule for when the current tower is greater than all previous towers
-plain_tower_count([Front|Back],MaxHeight,NumVisible) :-
-    Front > MaxHeight,
-    NumVisMinusOne is NumVisible - 1,
-    plain_tower_count(Back,Front,NumVisMinusOne).
-
-% rule for when the current tower is not greater than the current max height
-plain_tower_count([Front|Back],MaxHeight,NumVisible) :-
-    Front < MaxHeight,
-    plain_tower_count(Back,MaxHeight,NumVisible).
