@@ -133,6 +133,7 @@ unique_decreasing_list([H|T],N) :-
     unique_decreasing_list(T,N_decremented).
 
 % from TA Kimmo's slides
+
 elements_between([],_,_).
 elements_between([H|T],Min,Max) :-
     between(Min,Max,H),
@@ -142,11 +143,50 @@ all_unique([]).
 all_unique([H|T]) :- member(H,T),!,fail.
 all_unique([_|T]) :- all_unique(T).
 
+
+/*
+
 % list L has unique elements between 1 and N
 unique_list(N,L) :-
     length(L,N), % each list in T is of length N
     elements_between(L,1,N), % each list in T contains integers from 1 to N
     all_unique(L),!. % each list in T contains distinct integers
+
+*/
+
+
+% list L has unique elements between 1 and N
+unique_list(N,L) :-
+    unique_decreasing_list(DecreasingList,N),!,
+    permutation(DecreasingList,L).
+
+
+length_with_parameters_reversed(N,L) :- length(L,N).
+
+
+/* one list between Min and Max: L
+maplist(between(Min,Max),
+
+
+*/
+
+lbetween(L,Min,Max) :-
+    maplist(between(Min,Max),L).
+
+lolbetween(T,Min,Max) :-
+    maplist(maplist(between(Min,Max)),T).
+
+
+
+
+% NEW PLAIN TOWER
+%                     LE       RowOrCol
+% plain_check_forward([3,1,2],[[1,2,3],[3,1,2],[2,3,1]]).
+
+idk(UniqueList,N,RowOrCol,LeftElement) :-
+    permutation(UniqueList,RowOrCol),
+    between(1,N,LeftElement),
+    plain_tower_count(RowOrCol,0,LeftElement).
 
 
 
@@ -155,12 +195,24 @@ plain_tower(N,T,C) :-
     N >= 0, % N is a nonnegative integer
     length(T,N), % T must contain N lists
 
-    unique_decreasing_list(UniqueList,N),!, % basic unique list, ex: [4,3,2,1]
+    %lets just start with all rows are of length n
+    %maplist(length_with_parameters_reversed(N),T),
 
-    maplist(permutation(UniqueList),T), % try every possible permutation of the unique list
+    %now all rows contain values between 1 and n
+    %maplist(maplist(between(1,N)),T),
 
-    transpose(T,T_transpose),
-    maplist(unique_list(N),T_transpose), % make sure the columns are valid as well
+    %for now well try adding the unique constraint
+    %maplist(all_unique,T),
+
+    %transpose(T,T_transpose),
+
+    %for the columns, we should only have to check uniqueness
+    %maplist(all_unique,T_transpose),
+
+
+    length(UniqueList,N),
+    unique_decreasing_list(UniqueList,N), % basic unique list, ex: [4,3,2,1]
+
 
     C = counts(Top,Bottom,Left,Right), % check the counts on the edges
     length(Left,N),
@@ -168,27 +220,65 @@ plain_tower(N,T,C) :-
     length(Top,N),
     length(Bottom,N),
 
-    /*
-    elements_between(Left,1,N),
-    elements_between(Right,1,N),
-    elements_between(Top,1,N),
-    elements_between(Bottom,1,N),
-    */
+    maplist(idk(UniqueList,N),T,Left),
+
+    maplist(reverse,T,RevT),
+
+    maplist(idk(UniqueList,N),RevT,Right),
+
+    transpose(T,T_transpose),
+
+    maplist(idk(UniqueList,N),T_transpose,Top),
+
+    maplist(reverse,T_transpose,RevT_transpose),
+
+    maplist(idk(UniqueList,N),RevT_transpose,Bottom).
 
     /*
-    plain_check_forward(Left,T),
-    plain_check_backward(Right,T),
-    plain_check_forward(Top,T_transpose),
-    plain_check_backward(Bottom,T_transpose).
+    plain_check_forward(Left,T,N),
+    plain_check_backward(Right,T,N),
+    plain_check_forward(Top,T_transpose,N),
+    plain_check_backward(Bottom,T_transpose,N).
     */
+
+
+/* OLD IMPLEMENTATION
+
+plain_tower(N,T,C) :-
+    N >= 0, % N is a nonnegative integer
+    length(T,N), % T must contain N lists
+
+
+    unique_decreasing_list(UniqueList,N),!, % basic unique list, ex: [4,3,2,1]
+
+    maplist(permutation(UniqueList),T), % try every possible permutation of the unique list
+
+    transpose(T,T_transpose),
+    maplist(unique_list(N),T_transpose), % make sure the columns are valid as well
+
+
+
+    C = counts(Top,Bottom,Left,Right), % check the counts on the edges
+    length(Left,N),
+    length(Right,N),
+    length(Top,N),
+    length(Bottom,N),
+
+
+    %elements_between(Left,1,N),
+    %elements_between(Right,1,N),
+    %elements_between(Top,1,N),
+    %elements_between(Bottom,1,N),
+
+
+
 
     plain_check_forward(Left,T,N),
     plain_check_backward(Right,T,N),
     plain_check_forward(Top,T_transpose,N),
     plain_check_backward(Bottom,T_transpose,N).
 
-
-
+*/
 
 
 % plain tower count
@@ -208,24 +298,6 @@ plain_tower_count([Front|Back],MaxHeight,NumVisible) :-
 
 
 % plain_check_forward([3,1,2],[[1,2,3],[3,1,2],[2,3,1]]).
-
-
-
-/*
-plain_check_forward([],[]).
-
-plain_check_forward([LeftHead|LeftTail],[CurrRow|OtherRows]) :-
-    between(1,)
-    plain_tower_count(CurrRow,0,LeftHead),
-    plain_check_forward(LeftTail,OtherRows).
-
-plain_check_backward(Right,T) :-
-    maplist(reverse,T,RevT),
-    plain_check_forward(Right,RevT).
-*/
-
-
-
 
 plain_check_forward([],[],_).
 
