@@ -27,11 +27,11 @@ tower_count([],_,0).
 tower_count([Front|Back],MaxHeight,NumVisible) :-
     Front #> MaxHeight,
     NumVisMinusOne #= NumVisible - 1,
-    tower_count(Back,Front,NumVisMinusOne),!.
+    tower_count(Back,Front,NumVisMinusOne).
 
 tower_count([Front|Back],MaxHeight,NumVisible) :-
     Front #< MaxHeight,
-    tower_count(Back,MaxHeight,NumVisible),!.
+    tower_count(Back,MaxHeight,NumVisible).
 
 /* end rules to find number of visible towers */
 
@@ -41,19 +41,34 @@ tower_count([Front|Back],MaxHeight,NumVisible) :-
 tower(N,T,C) :-
     N >= 0, % N is a nonnegative integer
     length(T,N), % T must contain N lists
+    C = counts(Top,Bottom,Left,Right),
 
     maplist(basic_row_and_col_restrictions(N),T), % impose basic restrictions upon the rows
+
+    length(Left,N),
+    length(Right,N),
+    length(Top,N),
+    length(Bottom,N),
+
     transpose(T,T_transpose),
-    maplist(basic_row_and_col_restrictions(N),T_transpose), % impose basic restrictions upon the columns
 
-    maplist(fd_labeling,T),
-    maplist(fd_labeling,T_transpose),
+    maplist(fd_all_different,T_transpose), % impose basic restrictions upon the columns
 
-    C = counts(Top,Bottom,Left,Right), % check the counts on the edges
+    %i compute revT twice
+
     check_forward(Left,T),
-    check_backward(Right,T),
+
+    maplist(reverse,T,RevT),
+
+    check_forward(Right,RevT),
+
     check_forward(Top,T_transpose),
-    check_backward(Bottom,T_transpose).
+
+    maplist(reverse,T_transpose,RevT_transpose),
+
+    check_forward(Bottom,RevT_transpose),
+
+    maplist(fd_labeling,T).
 
 
 % -------------------------------- plain_tower helper predicates --------------------------------
@@ -117,6 +132,31 @@ plain_tower(N,T,C) :-
 
     maplist(plain_check_count(UniqueList,N),RevT_transpose,Bottom).
 
+% -------------------------------- speedup --------------------------------
+
+tower_performance(Tower_CPU_time) :-
+    statistics(cpu_time,[Start|_]),
+    tower(5,_T,counts([2,3,2,4,1],[4,2,1,2,3],[4,1,2,2,3],[1,5,3,2,3])),
+    statistics(cpu_time,[End|_]),
+    Tower_CPU_time is End - Start.
+
+plain_tower_performanc(Plain_Tower_CPU_time) :-
+    statistics(cpu_time,[Start|_]),
+    plain_tower(5,_T,counts([2,3,2,4,1],[4,2,1,2,3],[4,1,2,2,3],[1,5,3,2,3])),
+    statistics(cpu_time,[End|_]),
+    Plain_Tower_CPU_time is End - Start.
+
+speedup(Ratio) :-
+    tower_performance(Tower_CPU_time),
+    plain_tower_performanc(Plain_Tower_CPU_time),
+    Ratio is Plain_Tower_CPU_time / Tower_CPU_time.
+
+% -------------------------------- ambiguous --------------------------------
+
+ambiguous(N, C, T1, T2) :-
+    tower(N, T1, C),
+    tower(N, T2, C),
+    T1 \= T2.
 
 % -------------------------------- matrix transposition helper predicate --------------------------------
 
