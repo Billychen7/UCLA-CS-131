@@ -5,33 +5,19 @@ basic_row_and_col_restrictions(GridSize,RowOrCol) :-
     fd_domain(RowOrCol,1,GridSize), % each list in T contains integers from 1 to N
     fd_all_different(RowOrCol). % each list in T contains distinct integers
 
-/* rules to check tower counts */
-
-check_forward([],[]).
-
-check_forward([LeftHead|LeftTail],[CurrRow|OtherRows]) :-
-    tower_count(CurrRow,0,LeftHead),
-    check_forward(LeftTail,OtherRows).
-
-check_backward(Right,T) :-
-    maplist(reverse,T,RevT),
-    check_forward(Right,RevT).
-
-/* end rules to check tower counts */
-
 
 /* rules to find number of visible towers */
 
-tower_count([],_,0).
+tower_count(_,0,[]).
 
-tower_count([Front|Back],MaxHeight,NumVisible) :-
+tower_count(MaxHeight,NumVisible,[Front|Back]) :-
     Front #> MaxHeight,
     NumVisMinusOne #= NumVisible - 1,
-    tower_count(Back,Front,NumVisMinusOne).
+    tower_count(Front,NumVisMinusOne,Back).
 
-tower_count([Front|Back],MaxHeight,NumVisible) :-
+tower_count(MaxHeight,NumVisible,[Front|Back]) :-
     Front #< MaxHeight,
-    tower_count(Back,MaxHeight,NumVisible).
+    tower_count(MaxHeight,NumVisible,Back).
 
 /* end rules to find number of visible towers */
 
@@ -39,34 +25,31 @@ tower_count([Front|Back],MaxHeight,NumVisible) :-
 % -------------------------------- tower --------------------------------
 
 tower(N,T,C) :-
-    N >= 0, % N is a nonnegative integer
-    length(T,N), % T must contain N lists
+    N >= 0,
+    length(T,N),
     C = counts(Top,Bottom,Left,Right),
-
-    maplist(basic_row_and_col_restrictions(N),T), % impose basic restrictions upon the rows
-
     length(Left,N),
     length(Right,N),
     length(Top,N),
     length(Bottom,N),
 
+    maplist(basic_row_and_col_restrictions(N),T),
+
     transpose(T,T_transpose),
 
-    maplist(fd_all_different,T_transpose), % impose basic restrictions upon the columns
+    maplist(fd_all_different,T_transpose),
 
-    %i compute revT twice
-
-    check_forward(Left,T),
+    maplist(tower_count(0),Left,T),
 
     maplist(reverse,T,RevT),
 
-    check_forward(Right,RevT),
+    maplist(tower_count(0),Right,RevT),
 
-    check_forward(Top,T_transpose),
+    maplist(tower_count(0),Top,T_transpose),
 
     maplist(reverse,T_transpose,RevT_transpose),
 
-    check_forward(Bottom,RevT_transpose),
+    maplist(tower_count(0),Bottom,RevT_transpose),
 
     maplist(fd_labeling,T).
 
@@ -136,13 +119,13 @@ plain_tower(N,T,C) :-
 
 tower_performance(Tower_CPU_time) :-
     statistics(cpu_time,[Start|_]),
-    tower(5,_T,counts([2,3,2,4,1],[4,2,1,2,3],[4,1,2,2,3],[1,5,3,2,3])),
+    tower(5,_T,counts([1,2,2,2,3],[2,1,3,4,2],[1,2,3,4,2],[4,2,3,1,2])),
     statistics(cpu_time,[End|_]),
     Tower_CPU_time is End - Start.
 
 plain_tower_performanc(Plain_Tower_CPU_time) :-
     statistics(cpu_time,[Start|_]),
-    plain_tower(5,_T,counts([2,3,2,4,1],[4,2,1,2,3],[4,1,2,2,3],[1,5,3,2,3])),
+    plain_tower(5,_T,counts([1,2,2,2,3],[2,1,3,4,2],[1,2,3,4,2],[4,2,3,1,2])),
     statistics(cpu_time,[End|_]),
     Plain_Tower_CPU_time is End - Start.
 
