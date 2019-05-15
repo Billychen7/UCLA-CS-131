@@ -195,24 +195,8 @@ plain_tower(N,T,C) :-
     N >= 0, % N is a nonnegative integer
     length(T,N), % T must contain N lists
 
-    %lets just start with all rows are of length n
-    %maplist(length_with_parameters_reversed(N),T),
-
-    %now all rows contain values between 1 and n
-    %maplist(maplist(between(1,N)),T),
-
-    %for now well try adding the unique constraint
-    %maplist(all_unique,T),
-
-    %transpose(T,T_transpose),
-
-    %for the columns, we should only have to check uniqueness
-    %maplist(all_unique,T_transpose),
-
-
     length(UniqueList,N),
     unique_decreasing_list(UniqueList,N), % basic unique list, ex: [4,3,2,1]
-
 
     C = counts(Top,Bottom,Left,Right), % check the counts on the edges
     length(Left,N),
@@ -234,12 +218,7 @@ plain_tower(N,T,C) :-
 
     maplist(idk(UniqueList,N),RevT_transpose,Bottom).
 
-    /*
-    plain_check_forward(Left,T,N),
-    plain_check_backward(Right,T,N),
-    plain_check_forward(Top,T_transpose,N),
-    plain_check_backward(Bottom,T_transpose,N).
-    */
+
 
 
 /* OLD IMPLEMENTATION
