@@ -7,6 +7,10 @@
      (if x '% '(not %))]
     [else `(if % ,x ,y)]))
 
+(define (quote-compare x y)
+  (if (equal? x y)
+  x
+  `(if % ,x ,y)))
 
 (define (expr-compare x y)
   (cond
@@ -19,7 +23,7 @@
           (cons (expr-compare x-head y-head) (expr-compare x-tail y-tail))]
          [else ;if the heads are just normal atoms
           (if (and (equal? x-head 'quote) (equal? y-head 'quote)) ; if the head is a quote, then just treat as data
-              (cons (single-term-compare (cons 'quote (car x-tail)) (cons 'quote (car y-tail))) (expr-compare (cdr x-tail) (cdr y-tail)))
+              (append (quote-compare `',(car x-tail) `',(car y-tail)) (expr-compare (cdr x-tail) (cdr y-tail)))
               (cons (single-term-compare x-head y-head) (expr-compare x-tail y-tail)))]))]))
               
               
