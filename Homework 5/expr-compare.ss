@@ -15,7 +15,10 @@
 (define (expr-compare x y)
   (cond
     [(or (empty? x) (empty? y)) empty] ; for now just return empty list if one of the lists is empty (currently assuming that both lists are of the same length)
-    ; insert the cases for not being a pair here (expr-compare 1 2)
+    [(or (not (pair? x)) (not (pair? y)))
+     (single-term-compare x y)]
+     ; if both
+    ; add cases for one pair, etc
     [else
      (let ([x-head (car x)] [y-head (car y)] [x-tail (cdr x)] [y-tail (cdr y)])
        (cond
