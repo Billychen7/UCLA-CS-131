@@ -15,10 +15,14 @@
     [else
      (let ([x-head (car x)] [y-head (car y)] [x-tail (cdr x)] [y-tail (cdr y)])
        (cond
-         [(and (pair? x-head) (pair? y-head)) ;if the heads are lists, and not just atoms
+         [(and (pair? x-head) (pair? y-head)) ;if the heads are pairs
           (cons (expr-compare x-head y-head) (expr-compare x-tail y-tail))]
          [else ;if the heads are just normal atoms
-          (cons (single-term-compare x-head y-head) (expr-compare x-tail y-tail))]))]))
+          (if (and (equal? x-head 'quote) (equal? y-head 'quote)) ; if the head is a quote, then just treat as data
+              (cons (single-term-compare (cons 'quote (car x-tail)) (cons 'quote (car y-tail))) (expr-compare (cdr x-tail) (cdr y-tail)))
+              (cons (single-term-compare x-head y-head) (expr-compare x-tail y-tail)))]))]))
+              
+              
 
      
 
