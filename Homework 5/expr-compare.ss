@@ -120,16 +120,17 @@
      (let ([x-head (car x)] [y-head (car y)] [x-tail (cdr x)] [y-tail (cdr y)])
        (cond
          [(and (pair? x-head) (pair? y-head)) ;if the heads are pairs
-          (cond
-            [(and (or (equal? (car x-head) 'lambda) (equal? (car x-head) 'λ)) (or (equal? (car y-head) 'lambda) (equal? (car y-head) 'λ)))
-             (cons (lambda-compare x-head y-head) (expr-compare x-tail y-tail))]
-            [else (cons (expr-compare x-head y-head) (expr-compare x-tail y-tail))])]
+          (cons (expr-compare x-head y-head) (expr-compare x-tail y-tail))]
          [else ;if the heads are just normal atoms
           (cond
             [(and (equal? x-head 'quote) (equal? y-head 'quote)) ; if the head is a quote, then just treat as data
              (append (quote-compare `',(car x-tail) `',(car y-tail)) (expr-compare (cdr x-tail) (cdr y-tail)))]
             [(xor (equal? x-head 'if) (equal? y-head 'if)) ; if only one of the heads is an 'if'
              (single-term-compare x y)] ; this is probably wrong
+            
+            [(and (or (equal? x-head 'lambda) (equal? x-head 'λ)) (or (equal? y-head 'lambda) (equal? y-head 'λ))) ; if the head is lambda or λ
+             (lambda-compare x y)]
+            
             [else (cons (single-term-compare x-head y-head) (expr-compare x-tail y-tail))])]))]))
 
      
