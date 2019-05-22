@@ -1,4 +1,4 @@
-;#lang racket
+#lang racket
 
 ; handle (expr-compare '(a b) '(a b c))
 ; fix list vs list a
@@ -25,7 +25,7 @@
             (populate-var-dict x-tail y-tail x-var-dict y-var-dict) ; if they're equal, don't add entries to the dictionaries
             (populate-var-dict x-tail y-tail (dict-set x-var-dict x-var y-var)(dict-set y-var-dict y-var x-var))))))
 
-
+#|
 (define (lambda-compare x y)
   (let ([lambda-form
          (if (not (equal? (car x) (car y))) ; if at least one phrase used the symbol version, then use that for both versions
@@ -33,6 +33,20 @@
              (car x))]
         [var-dicts (populate-var-dict (cadr x) (cadr y) '#hash() '#hash())])
     (cons lambda-form (lambda-body-compare (cdr x) (cdr y) (car var-dicts) (cadr var-dicts)))))
+|#
+
+(define (lambda-compare x y)
+  (let ([x-var-names (cadr x)] [y-var-names (cadr y)])
+    (cond
+      [(not (equal? (length x-var-names) (length y-var-names))) ;if the 2 functions have a different # of args
+       `(if % ,x ,y)]
+      [else
+       (let ([lambda-form
+              (if (not (equal? (car x) (car y))) ; if at least one phrase used the symbol version, then use that for both versions
+                  'λ
+                  (car x))]
+             [var-dicts (populate-var-dict x-var-names y-var-names '#hash() '#hash())])
+         (cons lambda-form (lambda-body-compare (cdr x) (cdr y) (car var-dicts) (cadr var-dicts))))])))
 
 ; fix this to move lambda inside
 (define (lambda-body-compare x y x-var-dict y-var-dict)
