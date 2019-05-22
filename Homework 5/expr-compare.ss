@@ -27,6 +27,7 @@
             (populate-var-dict x-tail y-tail x-var-dict y-var-dict) ; if they're equal, don't add entries to the dictionaries
             (populate-var-dict x-tail y-tail (dict-set x-var-dict x-var y-var)(dict-set y-var-dict y-var x-var))))))
 
+; (lambda-compare '(λ (a b) (f a b)) '(λ (a c) (f c a)))
 (define (lambda-compare x y)
   (let ([lambda-form
          (if (not (equal? (car x) (car y))) ; if at least one phrase used the symbol version, then use that for both versions
@@ -40,12 +41,40 @@
     (cons lambda-form (lambda-body-compare (cdr x) (cdr y) (car var-dicts) (cadr var-dicts)))))
 
 
-; (lam
+; (lambda-body-compare '((a) a) '((b) b) '#hash((a . b)) '#hash((b . a))
+
+; (lambda-body-compare '((a b) (f a b)) '((a c) (f c a)) '#hash((b . c)) '#hash((c . b)))
 (define (lambda-body-compare x y x-var-dict y-var-dict)
-  (cons 1 (2 3)))
+  (cond
+    [(or (empty? x) (empty? y)) empty]
+    [(or (not (pair? x)) (not (pair? y)))
+     (lambda-single-term-compare x y x-var-dict y-var-dict)]
+    [(xor (equal? (length x) 1) (equal? (length y) 1))
+     (lambda-single-term-compare x y x-var-dict y-var-dict)]
+    [else
+     (let ([x-head (car x)] [y-head (car y)] [x-tail (cdr x)] [y-tail (cdr y)])
+       (cond
+         [(and (pair? x-head) (pair? y-head)) ;if the heads are pairs
+          (cond
+            [(and (or (equal? (car x-head) 'lambda) (equal? (car x-head) 'λ)) (or (equal? (car y-head) 'lambda) (equal? (car y-head) 'λ)))
+             (cons (lambda-compare x-head y-head) (expr-compare x-tail y-tail))]
+            [else (cons (lambda-body-compare x-head y-head x-var-dict y-var-dict) (lambda-body-compare x-tail y-tail x-var-dict y-var-dict))])]
+         [else ;if the heads are just normal atoms
+          (cond
+            [(and (equal? x-head 'quote) (equal? y-head 'quote)) ; if the head is a quote, then just treat as data
+             (append (quote-compare `',(car x-tail) `',(car y-tail)) (expr-compare (cdr x-tail) (cdr y-tail)))]
+            [(xor (equal? x-head 'if) (equal? y-head 'if)) ; if only one of the heads is an 'if'
+             (single-term-compare x y)] ; this is probably wrong
+            [else (cons (lambda-single-term-compare x-head y-head x-var-dict y-var-dict) (lambda-body-compare x-tail y-tail x-var-dict y-var-dict))])]))]))
+         
+    
+  
 
 ; this is horrificly inefficient but will optimize later
 ; (lambda-single-term-compare 'a 'b '#hash((a . b)) '#hash((b . a)))
+
+; (lambda-single-term-compare 'a 'c '#hash((b . c)) '#hash((c . b)))
+; should be '(if % a b!c)
 (define (lambda-single-term-compare x y x-var-dict y-var-dict)
   (cond
     [(equal? x y) x]
@@ -53,9 +82,29 @@
      (if x '% '(not %))]
     [else
      (let ([x-mapped (dict-ref x-var-dict x #f)] [y-mapped (dict-ref y-var-dict y #f)])
-       (if (and (equal? x-mapped y) (equal? y-mapped x))
-           (string->symbol (string-append (symbol->string x) "!" (symbol->string y)))
-           `(if % ,x ,y)))]))
+       (cond
+         [(and (equal? x-mapped y) (equal? y-mapped x))
+          (combine-terms x y)]
+         [(and x-mapped y-mapped) ;both x and y mapped to something
+          `(if % ,(combine-terms x x-mapped) ,(combine-terms y-mapped y))]
+         [x-mapped ; only x mapped to something
+          `(if % ,(combine-terms x x-mapped) ,y)]
+         [y-mapped ; only y mapped to something
+          `(if % ,x ,(combine-terms y-mapped y))]
+         [else
+          `(if % ,x ,y)]))]))
+          
+
+          
+ 
+
+          
+          ;`(if % ,x ,y)]))]))
+
+(define (combine-terms x y)
+  (string->symbol (string-append (symbol->string x) "!" (symbol->string y))))
+  
+          
 
 
 
