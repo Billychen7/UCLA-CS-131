@@ -15,12 +15,56 @@
   x
   `(if % ,x ,y)))
 
+(define dick #hash((a . "apple") (b . "banana")))
+
+; we'll see what the best behavior is for when they match - for now ill not add anything to the dict - consider doing the op twice
+
+(define (populate-var-dict x-var-names y-var-names x-var-dict y-var-dict)
+  (if (and (empty? x-var-names) (empty? y-var-names))
+      (list x-var-dict y-var-dict) ; if we've gone through all variables, return the dicts
+      (let ([x-var (car x-var-names)] [y-var (car y-var-names)] [x-tail (cdr x-var-names)] [y-tail (cdr y-var-names)])
+        (if (equal? x-var y-var)
+            (populate-var-dict x-tail y-tail x-var-dict y-var-dict) ; if they're equal, don't add entries to the dictionaries
+            (populate-var-dict x-tail y-tail (dict-set x-var-dict x-var y-var)(dict-set y-var-dict y-var x-var))))))
+
 (define (lambda-compare x y)
   (let ([lambda-form
          (if (not (equal? (car x) (car y))) ; if at least one phrase used the symbol version, then use that for both versions
              'λ
-             (car x))])
-    (cons lambda-form (expr-compare (cdr x) (cdr y)))))
+             (car x))]
+        [x-var-names (cadr x)]
+        [y-var-names (cadr y)]
+        [var-dicts (populate-var-dict (cadr x) (cadr y) '#hash() '#hash())])
+        ;[x-var-dict (car var-dicts)]
+        ;[y-var-dict (cadr var-dicts)])
+    (cons lambda-form (lambda-body-compare (cdr x) (cdr y) (car var-dicts) (cadr var-dicts)))))
+
+; a and a -> a
+; a and b -> a!b
+; (lambda-single-term-compare 'a 'b '#hash((a . b)) '#hash((b . a)))
+(define (lambda-single-term-compare x y x-var-dict y-var-dict)
+  (if (equal? x y)
+      x
+      (if (and (dict-ref x-var-dict x #f) (dict-ref y-var-dict y #f))
+          "yeet"
+          "no")))
+  
+  
+  
+
+
+; this is horrificly inefficient but will optimize later
+(define (lambda-body-compare x y x-var-dict y-var-dict)
+  "ye")
+
+#|
+  (cond
+    [(or (empty? x) (empty? y)) empty]
+    [(or (not (pair? x)) (not (pair? y)))
+     (lambda-single-term-compare x y x-var-dict y-var-dict)
+|#
+ 
+  
 
 (define (expr-compare x y)
   (cond
