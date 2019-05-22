@@ -15,7 +15,6 @@
   x
   `(if % ,x ,y)))
 
-(define dick #hash((a . "apple") (b . "banana")))
 
 ; we'll see what the best behavior is for when they match - for now ill not add anything to the dict - consider doing the op twice
 
@@ -57,12 +56,12 @@
          [(and (pair? x-head) (pair? y-head)) ;if the heads are pairs
           (cond
             [(and (or (equal? (car x-head) 'lambda) (equal? (car x-head) 'λ)) (or (equal? (car y-head) 'lambda) (equal? (car y-head) 'λ)))
-             (cons (lambda-compare x-head y-head) (expr-compare x-tail y-tail))]
+             (cons (lambda-compare x-head y-head) (lambda-body-compare x-tail y-tail x-var-dict y-var-dict))]
             [else (cons (lambda-body-compare x-head y-head x-var-dict y-var-dict) (lambda-body-compare x-tail y-tail x-var-dict y-var-dict))])]
          [else ;if the heads are just normal atoms
           (cond
             [(and (equal? x-head 'quote) (equal? y-head 'quote)) ; if the head is a quote, then just treat as data
-             (append (quote-compare `',(car x-tail) `',(car y-tail)) (expr-compare (cdr x-tail) (cdr y-tail)))]
+             (append (quote-compare `',(car x-tail) `',(car y-tail)) (lambda-body-compare (cdr x-tail) (cdr y-tail) x-var-dict y-var-dict))]
             [(xor (equal? x-head 'if) (equal? y-head 'if)) ; if only one of the heads is an 'if'
              (single-term-compare x y)] ; this is probably wrong
             [else (cons (lambda-single-term-compare x-head y-head x-var-dict y-var-dict) (lambda-body-compare x-tail y-tail x-var-dict y-var-dict))])]))]))
