@@ -16,7 +16,7 @@
   (if (equal? x y)
   x
   `(if % ,x ,y)))
-
+ 
 (define (populate-var-dict x-var-names y-var-names x-var-dict y-var-dict)
   (if (and (empty? x-var-names) (empty? y-var-names))
       (list x-var-dict y-var-dict) ; if we've gone through all variables, return the dicts
@@ -25,30 +25,33 @@
             (populate-var-dict x-tail y-tail x-var-dict y-var-dict) ; if they're equal, don't add entries to the dictionaries
             (populate-var-dict x-tail y-tail (dict-set x-var-dict x-var y-var)(dict-set y-var-dict y-var x-var))))))
 
-#|
-(define (lambda-compare x y)
-  (let ([lambda-form
-         (if (not (equal? (car x) (car y))) ; if at least one phrase used the symbol version, then use that for both versions
-             'λ
-             (car x))]
-        [var-dicts (populate-var-dict (cadr x) (cadr y) '#hash() '#hash())])
-    (cons lambda-form (lambda-body-compare (cdr x) (cdr y) (car var-dicts) (cadr var-dicts)))))
-|#
+(define (populate-var-dict-single-vals x-var y-var)
+  (if (equal? x-var y-var)
+      (list #hash() #hash())
+      (list (dict-set #hash() x-var y-var) (dict-set #hash() y-var x-var))))
+      
 
+; instead of if, use quote-compare
 (define (lambda-compare x y)
   (let ([x-var-names (cadr x)] [y-var-names (cadr y)])
     (cond
-      [(not (equal? (length x-var-names) (length y-var-names))) ;if the 2 functions have a different # of args
+      [(or (and (pair?  x-var-names) (not (list? x-var-names))) (and (pair?  y-var-names) (not (list? y-var-names)))) ; checks for improper lists
+       `(if % ,x ,y)]
+      [(xor (list? x-var-names) (list? y-var-names)) ; checks for single value and list combo
+       `(if % ,x ,y)]
+      [(and (list? x-var-names) (list? y-var-names) (not (equal? (length x-var-names) (length y-var-names)))) ; checks for different # of args
        `(if % ,x ,y)]
       [else
        (let ([lambda-form
               (if (not (equal? (car x) (car y))) ; if at least one phrase used the symbol version, then use that for both versions
                   'λ
                   (car x))]
-             [var-dicts (populate-var-dict x-var-names y-var-names '#hash() '#hash())])
+             [var-dicts (if (and (list? x-var-names) (list? y-var-names))
+                            (populate-var-dict x-var-names y-var-names '#hash() '#hash())
+                            (populate-var-dict-single-vals x-var-names y-var-names))])           
          (cons lambda-form (lambda-body-compare (cdr x) (cdr y) (car var-dicts) (cadr var-dicts))))])))
 
-; fix this to move lambda inside
+
 (define (lambda-body-compare x y x-var-dict y-var-dict)
   (cond
     [(or (empty? x) (empty? y)) empty]
@@ -75,7 +78,6 @@
 ; this is horrificly inefficient but will optimize later
 (define (lambda-single-term-compare x y x-var-dict y-var-dict)
   (cond
-    ;[(equal? x y) x]
     [(equal? x y)
      (let ([x-mapped (dict-ref x-var-dict x #f)] [y-mapped (dict-ref y-var-dict y #f)])
        (cond
