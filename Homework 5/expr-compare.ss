@@ -40,8 +40,9 @@
     (cons lambda-form (lambda-body-compare (cdr x) (cdr y) (car var-dicts) (cadr var-dicts)))))
 
 
+; (lam
 (define (lambda-body-compare x y x-var-dict y-var-dict)
-  "yeet")
+  (cons 1 (2 3)))
 
 ; this is horrificly inefficient but will optimize later
 ; (lambda-single-term-compare 'a 'b '#hash((a . b)) '#hash((b . a)))
