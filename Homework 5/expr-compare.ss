@@ -39,32 +39,24 @@
         ;[y-var-dict (cadr var-dicts)])
     (cons lambda-form (lambda-body-compare (cdr x) (cdr y) (car var-dicts) (cadr var-dicts)))))
 
-; a and a -> a
-; a and b -> a!b
-; (lambda-single-term-compare 'a 'b '#hash((a . b)) '#hash((b . a)))
-(define (lambda-single-term-compare x y x-var-dict y-var-dict)
-  (if (equal? x y)
-      x
-      (if (and (dict-ref x-var-dict x #f) (dict-ref y-var-dict y #f))
-          "yeet"
-          "no")))
-  
-  
-  
 
+(define (lambda-body-compare x y x-var-dict y-var-dict)
+  "yeet")
 
 ; this is horrificly inefficient but will optimize later
-(define (lambda-body-compare x y x-var-dict y-var-dict)
-  "ye")
-
-#|
+; (lambda-single-term-compare 'a 'b '#hash((a . b)) '#hash((b . a)))
+(define (lambda-single-term-compare x y x-var-dict y-var-dict)
   (cond
-    [(or (empty? x) (empty? y)) empty]
-    [(or (not (pair? x)) (not (pair? y)))
-     (lambda-single-term-compare x y x-var-dict y-var-dict)
-|#
- 
-  
+    [(equal? x y) x]
+    [(and (boolean? x) (boolean? y)) ; probably don't have to check for this
+     (if x '% '(not %))]
+    [else
+     (let ([x-mapped (dict-ref x-var-dict x #f)] [y-mapped (dict-ref y-var-dict y #f)])
+       (if (and (equal? x-mapped y) (equal? y-mapped x))
+           (string->symbol (string-append (symbol->string x) "!" (symbol->string y)))
+           `(if % ,x ,y)))]))
+
+
 
 (define (expr-compare x y)
   (cond
