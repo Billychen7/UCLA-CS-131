@@ -76,7 +76,18 @@
 ; should be '(if % a b!c)
 (define (lambda-single-term-compare x y x-var-dict y-var-dict)
   (cond
-    [(equal? x y) x]
+    ;[(equal? x y) x]
+    [(equal? x y)
+     (let ([x-mapped (dict-ref x-var-dict x #f)] [y-mapped (dict-ref y-var-dict y #f)])
+       (cond
+         [(and x-mapped y-mapped) ;both x and y mapped to something
+          `(if % ,(combine-terms x x-mapped) ,(combine-terms y-mapped y))]
+         [x-mapped ; only x mapped to something
+          `(if % ,(combine-terms x x-mapped) ,y)]
+         [y-mapped ; only y mapped to something
+          `(if % ,x ,(combine-terms y-mapped y))]
+         [else x]))]
+  
     [(and (boolean? x) (boolean? y)) ; probably don't have to check for this
      (if x '% '(not %))]
     [else
