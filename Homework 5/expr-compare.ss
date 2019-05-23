@@ -116,3 +116,14 @@
             [(and (or (equal? x-head 'lambda) (equal? x-head 'λ)) (or (equal? y-head 'lambda) (equal? y-head 'λ))) ; if the head is lambda or λ
              (lambda-compare x y)]
             [else (cons (single-term-compare x-head y-head) (expr-compare x-tail y-tail))])]))]))
+
+(define (test-expr-compare x y)
+  (and
+   (equal? (eval (list 'let '((% #t)) (expr-compare x y))) (eval x))
+   (equal? (eval (list 'let '((% #f)) (expr-compare x y))) (eval y))))
+
+(define test-expr-x
+  (+ 1 2))
+
+(define test-expr-y
+  (+ 1 3))
