@@ -1,10 +1,5 @@
 #lang racket
 
-; handle (expr-compare '(a b) '(a b c))
-; fix list vs list a
-; lots of duplicate code
-; if statements inside of lambdas
-
 (define (single-term-compare x y)
   (cond
     [(equal? x y) x]
@@ -29,8 +24,7 @@
   (if (equal? x-var y-var)
       (list #hash() #hash())
       (list (dict-set #hash() x-var y-var) (dict-set #hash() y-var x-var))))
-      
-;fix this to work for (lambda-compare '(1 2) '(1 . 2)) -> currently does not work - wait it always takes a lambda as the first arg so we'll see
+
 (define (lambda-compare x y)
   (let ([x-var-names (cadr x)] [y-var-names (cadr y)])
     (cond
@@ -50,13 +44,15 @@
                             (populate-var-dict-single-vals x-var-names y-var-names))])           
          (cons lambda-form (lambda-body-compare (cdr x) (cdr y) (car var-dicts) (cadr var-dicts))))])))
 
-
 (define (lambda-body-compare x y x-var-dict y-var-dict)
   (cond
-    [(or (empty? x) (empty? y)) empty]
-    [(or (not (pair? x)) (not (pair? y)))
+    [(or (empty? x) (empty? y)) ; if either x or y is empty
+     (quote-compare x y)]
+    [(or (not (pair? x)) (not (pair? y))) ; if x, y, or both is a single value
      (lambda-single-term-compare x y x-var-dict y-var-dict)]
-    [(xor (equal? (length x) 1) (equal? (length y) 1))
+    [(or (and (pair?  x) (not (list? x))) (and (pair?  y) (not (list? y)))) ; if x, y, or both is an improper list
+     (quote-compare x y)]
+    [(not (equal? (length x) (length y))) ; if x and y are lists of different lengths
      (lambda-single-term-compare x y x-var-dict y-var-dict)]
     [else
      (let ([x-head (car x)] [y-head (car y)] [x-tail (cdr x)] [y-tail (cdr y)])
@@ -68,60 +64,44 @@
             [(and (equal? x-head 'quote) (equal? y-head 'quote)) ; if the head is a quote, then just treat as data
              (append (quote-compare `',(car x-tail) `',(car y-tail)) (lambda-body-compare (cdr x-tail) (cdr y-tail) x-var-dict y-var-dict))]
             [(xor (equal? x-head 'if) (equal? y-head 'if)) ; if only one of the heads is an 'if'
-             (lambda-single-term-compare x y x-var-dict y-var-dict)] ; this is probably wrong
+             (lambda-single-term-compare x y x-var-dict y-var-dict)]
              [(and (or (equal? x-head 'lambda) (equal? x-head 'λ)) (or (equal? y-head 'lambda) (equal? y-head 'λ))) ; if the head is lambda or λ
               (lambda-compare x y)]
             [else (cons (lambda-single-term-compare x-head y-head x-var-dict y-var-dict) (lambda-body-compare x-tail y-tail x-var-dict y-var-dict))])]))]))
-         
 
-; this is horrificly inefficient but will optimize later
 (define (lambda-single-term-compare x y x-var-dict y-var-dict)
   (cond
-    [(equal? x y)
-     (let ([x-mapped (dict-ref x-var-dict x #f)] [y-mapped (dict-ref y-var-dict y #f)])
-       (cond
-         [(and x-mapped y-mapped) ;both x and y mapped to something
-          `(if % ,(combine-terms x x-mapped) ,(combine-terms y-mapped y))]
-         [x-mapped ; only x mapped to something
-          `(if % ,(combine-terms x x-mapped) ,y)]
-         [y-mapped ; only y mapped to something
-          `(if % ,x ,(combine-terms y-mapped y))]
-         [else x]))]
-    [(and (boolean? x) (boolean? y)) ; probably don't have to check for this
-     (if x '% '(not %))]
+    [(and (boolean? x) (boolean? y))
+     (if (equal? x y)
+         x
+         (if x '% '(not %)))]
     [else
      (let ([x-mapped (dict-ref x-var-dict x #f)] [y-mapped (dict-ref y-var-dict y #f)])
        (cond
-         [(and (equal? x-mapped y) (equal? y-mapped x))
+         [(and (equal? x-mapped y) (equal? y-mapped x)) ; x and y map to each other
           (combine-terms x y)]
-         [(and x-mapped y-mapped) ;both x and y mapped to something
+         [(and x-mapped y-mapped) ; both x and y mapped to something
           `(if % ,(combine-terms x x-mapped) ,(combine-terms y-mapped y))]
          [x-mapped ; only x mapped to something
           `(if % ,(combine-terms x x-mapped) ,y)]
          [y-mapped ; only y mapped to something
           `(if % ,x ,(combine-terms y-mapped y))]
-         [else
-          `(if % ,x ,y)]))]))
-          
-
+         [(equal? x y) x]
+         [else `(if % ,x ,y)]))]))
+         
 (define (combine-terms x y)
   (string->symbol (string-append (symbol->string x) "!" (symbol->string y))))
-  
 
 (define (expr-compare x y)
   (cond
     [(or (empty? x) (empty? y)) ; if either x or y is empty
      (quote-compare x y)]
-
     [(or (not (pair? x)) (not (pair? y))) ; if x, y, or both is a single value
      (single-term-compare x y)]
-
     [(or (and (pair?  x) (not (list? x))) (and (pair?  y) (not (list? y)))) ; if x, y, or both is an improper list
      (quote-compare x y)]
-     
     [(not (equal? (length x) (length y))) ; if x and y are lists of different lengths
      `(if % ,x ,y)]
- 
     [else
      (let ([x-head (car x)] [y-head (car y)] [x-tail (cdr x)] [y-tail (cdr y)])
        (cond
