@@ -16,7 +16,7 @@
   (if (equal? x y)
   x
   `(if % ,x ,y)))
- 
+
 (define (populate-var-dict x-var-names y-var-names x-var-dict y-var-dict)
   (if (and (empty? x-var-names) (empty? y-var-names))
       (list x-var-dict y-var-dict) ; if we've gone through all variables, return the dicts
@@ -31,7 +31,6 @@
       (list (dict-set #hash() x-var y-var) (dict-set #hash() y-var x-var))))
       
 
-; instead of if, use quote-compare
 (define (lambda-compare x y)
   (let ([x-var-names (cadr x)] [y-var-names (cadr y)])
     (cond
