@@ -30,7 +30,7 @@
       (list #hash() #hash())
       (list (dict-set #hash() x-var y-var) (dict-set #hash() y-var x-var))))
       
-
+;fix this to work for (lambda-compare '(1 2) '(1 . 2)) -> currently does not work - wait it always takes a lambda as the first arg so we'll see
 (define (lambda-compare x y)
   (let ([x-var-names (cadr x)] [y-var-names (cadr y)])
     (cond
@@ -110,13 +110,18 @@
 
 (define (expr-compare x y)
   (cond
-    [(or (empty? x) (empty? y)) empty] ; for now just return empty list if one of the lists is empty (currently assuming that both lists are of the same length)
-    [(or (not (pair? x)) (not (pair? y)))
+    [(or (empty? x) (empty? y)) ; if either x or y is empty
+     (quote-compare x y)]
+
+    [(or (not (pair? x)) (not (pair? y))) ; if x, y, or both is a single value
      (single-term-compare x y)]
-    [(xor (equal? (length x) 1) (equal? (length y) 1)) ; this is for the list vs list a case - weird
-     (single-term-compare x y)]
-     ; if both
-    ; add cases for one pair, etc
+
+    [(or (and (pair?  x) (not (list? x))) (and (pair?  y) (not (list? y)))) ; if x, y, or both is an improper list
+     (quote-compare x y)]
+     
+    [(not (equal? (length x) (length y))) ; if x and y are lists of different lengths
+     `(if % ,x ,y)]
+ 
     [else
      (let ([x-head (car x)] [y-head (car y)] [x-tail (cdr x)] [y-tail (cdr y)])
        (cond
