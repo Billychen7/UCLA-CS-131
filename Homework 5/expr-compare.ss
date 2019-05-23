@@ -29,7 +29,7 @@
   (let ([x-var-names (cadr x)] [y-var-names (cadr y)])
     (cond
       [(or (and (pair?  x-var-names) (not (list? x-var-names))) (and (pair?  y-var-names) (not (list? y-var-names)))) ; checks for improper lists
-       `(if % ,x ,y)]
+       (quote-compare x y)]
       [(xor (list? x-var-names) (list? y-var-names)) ; checks for single value and list combo
        `(if % ,x ,y)]
       [(and (list? x-var-names) (list? y-var-names) (not (equal? (length x-var-names) (length y-var-names)))) ; checks for different # of args
