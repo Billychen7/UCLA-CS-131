@@ -65,7 +65,7 @@
              (append (quote-compare `',(car x-tail) `',(car y-tail)) (lambda-body-compare (cdr x-tail) (cdr y-tail) x-var-dict y-var-dict))]
             [(xor (equal? x-head 'if) (equal? y-head 'if)) ; if only one of the heads is an 'if'
              (lambda-single-term-compare x y x-var-dict y-var-dict)]
-             [(and (or (equal? x-head 'lambda) (equal? x-head 'λ)) (or (equal? y-head 'lambda) (equal? y-head 'λ))) ; if the head is lambda or λ
+            [(and (or (equal? x-head 'lambda) (equal? x-head 'λ)) (or (equal? y-head 'lambda) (equal? y-head 'λ))) ; if the head is lambda or λ
               (lambda-compare x y)]
             [else (cons (lambda-single-term-compare x-head y-head x-var-dict y-var-dict) (lambda-body-compare x-tail y-tail x-var-dict y-var-dict))])]))]))
 
@@ -123,7 +123,16 @@
    (equal? (eval (list 'let '((% #f)) (expr-compare x y))) (eval y))))
 
 (define test-expr-x
-  (+ 1 2))
+  '((lambda (a b c d e)
+      #f #f #t #t a b c d e (and (equal? a b) (equal? d e)) '(5 6) (quote (5 6)) (length (list 1 3)) (if 1 2 3) (and 1 2 3)
+      ((λ (x y) (+ x y)) a b))
+    10 15 #f (list 1 2 3) 1))
 
 (define test-expr-y
-  (+ 1 3))
+  '((λ (b a c f g)
+      #f #t #f #t a b c f g (and (equal? b a) (equal? f c)) '(5 7) (quote (5 7)) (length (list 1 2)) (if 1 4 3) (if 1 2 3)
+      ((lambda (y x) (- x y)) b a))
+    10 20 #t (list 1 2 4) (cons 1 2)))
+
+; (test-expr-compare test-expr-x test-expr-y)
+; (expr-compare test-expr-x test-expr-y)
