@@ -105,19 +105,43 @@ async def handle_IAMAT_message(message, time_received):
     if time_difference[0] != '-':
         time_difference = '+' + time_difference
 
-    copy_of_client_data = ' '.join(message)
+    copy_of_client_data = ' '.join(message[1:])
     server_response = "AT " + server_name + " " + time_difference + " " + copy_of_client_data + "\n"
 
+    # client_ID new_loc?? time_sent time_received server_received
+    flood_message_list = message[1:]
+    flood_message_list.append(time_received)
+    flood_message_list.append(server_name)
 
+    flood_message = "UPDATE_CLIENT " + ' '.join(flood_message_list)
+
+    asyncio.ensure_future(flood(flood_message, server_name))
+
+
+
+
+async def flood_message(message, server_name):
+    for connection in server_connections:
+        log_file.write("Trying to connect server " + connection + " to port " + server_ports[connection])
+        try:
+            reader,writer = await asyncio.open_connection(host='127.0.0.1', port=server_ports[connection], loop=event_loop)
+            log_file.write("Successfully connected.\n")
+            writer.write(message.encode())
+            await writer.drain()
+            writer.close()
+        except:
+            log_file.write("Failed to connect.\n")
+            pass
 
 
 # format for WHATSAT message:
 # WHATSAT [Name of another client] [Radius (km)] [Max # of results]
 # Ex: WHATSAT kiwi.cs.ucla.edu 10 5
-async def handle_WHATSAT_message(message, time_received):
+#async def handle_WHATSAT_message(message, time_received):
 
 
 # server implementation
+
 async def handle_connection(reader, writer):
     data = await reader.readline()
     received_message = data.decode()
@@ -131,13 +155,13 @@ async def handle_connection(reader, writer):
     message_type = check_valid_message(received_message)
 
     if message_type == -1:
-        #do error stuff
+        print("need to add error stuff")
 
     elif message_type == IAMAT:
         await handle_IAMAT_message(received_message, time_received)
 
-    elif message_type == WHATSAT:
-        await handle_WHATSAT_message(received_message, time_received)
+    #elif message_type == WHATSAT:
+     #   await handle_WHATSAT_message(received_message, time_received)
 
 
 
