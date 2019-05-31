@@ -5,6 +5,7 @@
 import sys # for command line arguments
 import asyncio
 import time # for timing when messages are received/sent between the client and server
+import aiohttp # for HTTP request to the Google Places API
 
 # for bidirectional communication between servers 
 server_connections = {
@@ -26,6 +27,8 @@ server_ports = {
 # dictionary that maps a client ID to a list containing
 # [Coordinates, Time client sent message, Time server received message, Server name]
 clients = {}
+
+API_KEY = 'AIzaSyDjQOOtBBnxqcXUKbPtpSqBPzHZU1_nJl0'
 
 # input: coordinate string: +34.068930-118.445127
 # output: (latitude, longitude) tuple: ('+34.068930', '-118.445127')
@@ -59,25 +62,29 @@ def check_valid_message(message):
 
     command_name = message[0]
 
-    # check for valid command name
-    if command_name not in ['IAMAT','WHATSAT','UPDATE_CLIENT']:
-        return "Invalid"
-
-    # IAMAT and WHATSAT messages should have 4 tokens
-    if command_name == 'IAMAT' or command_name == 'WHATSAT':
-        if len(message) == 4:
+    # check that IAMAT messages have 4 tokens and valid coordinates
+    # note: message[2] = coordinates
+    if command_name == 'IAMAT':
+        if len(message) == 4 and separate_lat_and_long(message[2]):
             return command_name
-        else:
-            return "Invalid"
 
-    # UPDATE_CLIENT messages should have 6 tokens
+    # check that WHATSAT messages have 4 tokens, a valid radius, and a valid upper bound
+    elif command_name == 'WHATSAT':
+        if len(message) == 4:
+            radius = int(message[2])
+            upper_bound = int(message[3])
+            if radius > 0 and radius <= 50 and upper_bound > 0 and upper_bound <= 20:
+                return command_name
+
+    # check that UPDATE_CLIENT messages have 6 tokens
     elif command_name == 'UPDATE_CLIENT':
         if len(message) == 6:
             return command_name
-        else:
-            return "Invalid"
-    else:
-        return "Invalid"
+
+    return 'Invalid'
+
+
+
 
 
 
@@ -113,12 +120,6 @@ async def handle_IAMAT_message(message, time_received):
     client_ID = message[1]
     coordinates = message[2]
     time_sent = message[3]
-
-    coordinate_pair = separate_lat_and_long(coordinates)
-
-    if coordinate_pair is None:
-        # DO ERROR STUFF
-        return
 
     # update clients dictionary
     clients[client_ID] = [coordinates, time_sent, time_received, server_name]
@@ -162,19 +163,45 @@ async def flood(message, server_name):
 # format for WHATSAT message:
 # WHATSAT [Name of another client] [Radius (km)] [Max # of results]
 # Ex: WHATSAT kiwi.cs.ucla.edu 10 5
-#async def handle_WHATSAT_message(message, time_received):
+async def handle_WHATSAT_message(message, time_received):
+    client_ID = message[1]
+    if client_ID not in clients:
+        server_response = "? " + message
+        return server_response
+
+    radius = message[2]
+    upper_bound = message[3]
+
+    coordinates, time_client_sent, time_server_received, server_name = clients[client_ID]
+
+    latitude, longitude = separate_lat_and_long(coordinates)
+    location = latitude + "," + longitude
+    location = coord_string.replace("+","")
+
+    radius = str(int(radius) * 1000) # convert radius from km to m
+
+    request = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={0}&radius={1}&key={2}'.format(location,radius,API_KEY)
+
+    
+
+   
+
+
+
+
+
 
 
 # server implementation
-
 async def handle_connection(reader, writer):
+    
     data = await reader.readline()
-    received_message = data.decode()
+    original_received_message = data.decode()
     time_received = time.time()
 
-    log_file.write("RECEIVED: " + received_message)
+    log_file.write("RECEIVED: " + original_received_message)
 
-    received_message = received_message.strip() # remove leading and trailing spaces
+    received_message = original_received_message.strip() # remove leading and trailing spaces
     received_message = received_message.split() # convert message into a list of strings
 
     message_type = check_valid_message(received_message)
@@ -182,7 +209,7 @@ async def handle_connection(reader, writer):
     server_response = ''
 
     if message_type == 'Invalid':
-        print("need to add error stuff")
+        server_response = "? " + original_received_message
 
     elif message_type == 'IAMAT':
         server_response = await handle_IAMAT_message(received_message, str(time_received))
@@ -190,12 +217,14 @@ async def handle_connection(reader, writer):
     elif message_type == 'UPDATE_CLIENT':
         await handle_UPDATE_CLIENT_message(received_message)
 
-    #elif message_type == WHATSAT:
-     #   await handle_WHATSAT_message(received_message, time_received)
+    elif message_type == WHATSAT:
+        server_response = await handle_WHATSAT_message(received_message, time_received)
 
-    writer.write(server_response.encode())
-    await writer.drain()
-    writer.close()
+    if message_type != 'UPDATE_CLIENT':
+        log_file.write("SENDING: " + server_response)
+        writer.write(server_response.encode())
+        await writer.drain()
+        writer.close()
 
 
 def main():
