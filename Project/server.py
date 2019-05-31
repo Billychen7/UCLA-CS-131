@@ -6,9 +6,6 @@ import sys # for command line arguments
 import asyncio
 import time # for timing when messages are received/sent between the client and server
 
-IAMAT = 1
-WHATSAT = 2
-
 # for bidirectional communication between servers 
 server_connections = {
     'Goloman': ['Hands', 'Holiday', 'Wilkes'],
@@ -27,7 +24,7 @@ server_ports = {
 }
 
 # dictionary that maps a client ID to a list containing
-# [Server name, Coordinates, Time client sent message, Time server received message]
+# [Coordinates, Time client sent message, Time server received message, Server name]
 clients = {}
 
 # input: coordinate string: +34.068930-118.445127
@@ -54,30 +51,57 @@ def separate_lat_and_long(coordinates):
     return (latitude,longitude)
 
 
-
 # note: the message has been split at this point and is represented as an array
-# return value:
-# -1 for invalid message
-# 1 for IAMAT
-# 2 for WHATSAT
+# returns a string representing the message type, or "Invalid" if the message isn't valid
 def check_valid_message(message):
     if len(message) < 1:
-        return -1
+        return "Invalid"
 
     command_name = message[0]
 
     # check for valid command name
-    if command_name != 'IAMAT' and command_name != 'WHATSAT':
-        return -1
+    if command_name not in ['IAMAT','WHATSAT','UPDATE_CLIENT']:
+        return "Invalid"
 
-    # check for correct amount of tokens
-    if len(message) != 4:
-        return -1
+    # IAMAT and WHATSAT messages should have 4 tokens
+    if command_name == 'IAMAT' or command_name == 'WHATSAT':
+        if len(message) == 4:
+            return command_name
+        else:
+            return "Invalid"
 
-    if command_name == 'IAMAT':
-        return IAMAT
+    # UPDATE_CLIENT messages should have 6 tokens
+    elif command_name == 'UPDATE_CLIENT':
+        if len(message) == 6:
+            return command_name
+        else:
+            return "Invalid"
+    else:
+        return "Invalid"
 
-    return WHATSAT
+
+
+# format for UPDATE_CLIENT message:
+# UPDATE_CLIENT [Client ID] [Updated coordinates] [Time sent] [Time received] [Server name]
+# note: this message is only used for inter-server communication to flood messages
+async def handle_UPDATE_CLIENT_message(message):
+    client_ID = message[1]
+    time_sent = message[3]
+
+    if client_ID in clients:
+        time_client_sent_message = clients[client_ID][1]
+        if time_sent > time_client_sent_message:
+            clients[client_ID] = message[2:]
+
+            flood_message = ' '.join(message)
+
+            asyncio.ensure_future(flood(message, server_name))
+    else: # client_ID is NOT in clients
+        clients[client_ID] = message[2:]
+
+        flood_message = ' '.join(message)
+
+        asyncio.ensure_future(flood(message, server_name))
 
 
 # format for IAMAT message:
@@ -97,9 +121,9 @@ async def handle_IAMAT_message(message, time_received):
         return
 
     # update clients dictionary
-    clients[client_ID] = [server_name, coordinates, time_sent, time_received]
+    clients[client_ID] = [coordinates, time_sent, time_received, server_name]
 
-    time_difference = str(time_received - float(time_sent))
+    time_difference = str(float(time_received) - float(time_sent))
 
     # prepend a '+' if the difference is positive
     if time_difference[0] != '-':
@@ -108,21 +132,22 @@ async def handle_IAMAT_message(message, time_received):
     copy_of_client_data = ' '.join(message[1:])
     server_response = "AT " + server_name + " " + time_difference + " " + copy_of_client_data + "\n"
 
-    # client_ID new_loc?? time_sent time_received server_received
+    # current server must inform other servers about the updated location
+    # we flood an UPDATE_CLIENT message to all the other servers
     flood_message_list = message[1:]
     flood_message_list.append(time_received)
     flood_message_list.append(server_name)
 
-    flood_message = "UPDATE_CLIENT " + ' '.join(flood_message_list)
-
+    flood_message = "UPDATE_CLIENT " + ' '.join(flood_message_list) + "\n"
     asyncio.ensure_future(flood(flood_message, server_name))
 
+    return server_response
 
 
 
-async def flood_message(message, server_name):
+async def flood(message, server_name):
     for connection in server_connections:
-        log_file.write("Trying to connect server " + connection + " to port " + server_ports[connection])
+        log_file.write("Trying to connect server " + connection + " to port " + str(server_ports[connection]) + "\n")
         try:
             reader,writer = await asyncio.open_connection(host='127.0.0.1', port=server_ports[connection], loop=event_loop)
             log_file.write("Successfully connected.\n")
@@ -153,17 +178,24 @@ async def handle_connection(reader, writer):
     received_message = received_message.split() # convert message into a list of strings
 
     message_type = check_valid_message(received_message)
+    
+    server_response = ''
 
-    if message_type == -1:
+    if message_type == 'Invalid':
         print("need to add error stuff")
 
-    elif message_type == IAMAT:
-        await handle_IAMAT_message(received_message, time_received)
+    elif message_type == 'IAMAT':
+        server_response = await handle_IAMAT_message(received_message, str(time_received))
+
+    elif message_type == 'UPDATE_CLIENT':
+        await handle_UPDATE_CLIENT_message(received_message)
 
     #elif message_type == WHATSAT:
      #   await handle_WHATSAT_message(received_message, time_received)
 
-
+    writer.write(server_response.encode())
+    await writer.drain()
+    writer.close()
 
 
 def main():
@@ -179,7 +211,6 @@ def main():
     server_name = sys.argv[1]
     
     log_file_name = server_name + "-log.txt"
-    print(log_file_name)
 
     global log_file
     log_file = open(log_file_name, 'a+') # open for reading and appending
