@@ -1,11 +1,13 @@
 # references: 
 # TA Kimmo Karkkainen's slides
 # https://asyncio.readthedocs.io/en/latest/tcp_echo.html#tcp-echo-client
+# https://aiohttp.readthedocs.io/en/stable/
 
 import sys # for command line arguments
 import asyncio
 import time # for timing when messages are received/sent between the client and server
 import aiohttp # for HTTP request to the Google Places API
+import json # the Google Places API returns a JSON
 
 # for bidirectional communication between servers 
 server_connections = {
@@ -84,10 +86,6 @@ def check_valid_message(message):
     return 'Invalid'
 
 
-
-
-
-
 # format for UPDATE_CLIENT message:
 # UPDATE_CLIENT [Client ID] [Updated coordinates] [Time sent] [Time received] [Server name]
 # note: this message is only used for inter-server communication to flood messages
@@ -131,7 +129,7 @@ async def handle_IAMAT_message(message, time_received):
         time_difference = '+' + time_difference
 
     copy_of_client_data = ' '.join(message[1:])
-    server_response = "AT " + server_name + " " + time_difference + " " + copy_of_client_data + "\n"
+    server_response = ' '.join(['AT',server_name,time_difference,copy_of_client_data]) + "\n"
 
     # current server must inform other servers about the updated location
     # we flood an UPDATE_CLIENT message to all the other servers
@@ -172,7 +170,7 @@ async def handle_WHATSAT_message(message, time_received):
     radius = message[2]
     upper_bound = message[3]
 
-    coordinates, time_client_sent, time_server_received, server_name = clients[client_ID]
+    coordinates, time_client_sent, time_server_received, clients_server_name = clients[client_ID]
 
     latitude, longitude = separate_lat_and_long(coordinates)
     location = latitude + "," + longitude
@@ -180,16 +178,32 @@ async def handle_WHATSAT_message(message, time_received):
 
     radius = str(int(radius) * 1000) # convert radius from km to m
 
-    request = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={0}&radius={1}&key={2}'.format(location,radius,API_KEY)
+    request_url = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={0}&radius={1}&key={2}'.format(location,radius,API_KEY)
 
-    
+    time_difference = str(float(time_server_received) - float(time_client_sent))
 
-   
+    if time_difference[0] != '-':
+        time_difference = '+' + time_difference
+
+    server_response = ' '.join(['AT',server_name,time_difference,client_ID,coordinates,time_client_sent]) + "\n"
+
+    # request Google Places API for location data
+    async with aiohttp.ClientSession() as session:
+        places_json = await fetch(session, request_url)
+
+    # enforce upper bound on amount of information to return
+    places_json['results'] = places_json['results'][:upper_bound]
+
+    formatted_places_json = json.dumps(places_json, indent=3)
+
+    server_response += formatted_places_json + "\n"
+
+    return server_response
 
 
-
-
-
+async def fetch(session, url):
+    async with session.get(url) as response:
+        return await response.json()
 
 
 # server implementation
@@ -217,7 +231,7 @@ async def handle_connection(reader, writer):
     elif message_type == 'UPDATE_CLIENT':
         await handle_UPDATE_CLIENT_message(received_message)
 
-    elif message_type == WHATSAT:
+    elif message_type == 'WHATSAT':
         server_response = await handle_WHATSAT_message(received_message, time_received)
 
     if message_type != 'UPDATE_CLIENT':
