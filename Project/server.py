@@ -55,7 +55,6 @@ def separate_lat_and_long(coordinates):
 
     return (latitude,longitude)
 
-
 # note: the message has been split at this point and is represented as an array
 # returns a string representing the message type, or "Invalid" if the message isn't valid
 def check_valid_message(message):
@@ -85,7 +84,6 @@ def check_valid_message(message):
 
     return 'Invalid'
 
-
 # format for UPDATE_CLIENT message:
 # UPDATE_CLIENT [Client ID] [Updated coordinates] [Time sent] [Time received] [Server name]
 # note: this message is only used for inter-server communication to flood messages
@@ -95,19 +93,15 @@ async def handle_UPDATE_CLIENT_message(message):
 
     if client_ID in clients:
         time_client_sent_message = clients[client_ID][1]
+        # if the client hasn't received the message yet
         if time_sent > time_client_sent_message:
             clients[client_ID] = message[2:]
-
             flood_message = ' '.join(message)
-
             asyncio.ensure_future(flood(message, server_name))
-    else: # client_ID is NOT in clients
+    else: # client_ID is NOT in clients -> flood message
         clients[client_ID] = message[2:]
-
         flood_message = ' '.join(message)
-
         asyncio.ensure_future(flood(message, server_name))
-
 
 # format for IAMAT message:
 # IAMAT [Client ID] [Coordinates] [Timestamp (POSIX)]
@@ -127,7 +121,8 @@ async def handle_IAMAT_message(message, time_received):
     # prepend a '+' if the difference is positive
     if time_difference[0] != '-':
         time_difference = '+' + time_difference
-
+    
+    # form server response
     copy_of_client_data = ' '.join(message[1:])
     server_response = ' '.join(['AT',server_name,time_difference,copy_of_client_data]) + "\n"
 
@@ -142,8 +137,6 @@ async def handle_IAMAT_message(message, time_received):
 
     return server_response
 
-
-
 async def flood(message, server_name):
     for connection in server_connections:
         log_file.write("Trying to connect server " + connection + " to port " + str(server_ports[connection]) + "\n")
@@ -157,24 +150,23 @@ async def flood(message, server_name):
             log_file.write("Failed to connect.\n")
             pass
 
-
 # format for WHATSAT message:
 # WHATSAT [Name of another client] [Radius (km)] [Max # of results]
 # Ex: WHATSAT kiwi.cs.ucla.edu 10 5
-async def handle_WHATSAT_message(message, time_received):
+async def handle_WHATSAT_message(message):
     client_ID = message[1]
     if client_ID not in clients:
-        server_response = "? " + message
+        server_response = "? " + ' '.join(message)
         return server_response
 
     radius = message[2]
-    upper_bound = message[3]
+    upper_bound = int(message[3])
 
     coordinates, time_client_sent, time_server_received, clients_server_name = clients[client_ID]
 
     latitude, longitude = separate_lat_and_long(coordinates)
     location = latitude + "," + longitude
-    location = coord_string.replace("+","")
+    location = location.replace("+","")
 
     radius = str(int(radius) * 1000) # convert radius from km to m
 
@@ -200,11 +192,9 @@ async def handle_WHATSAT_message(message, time_received):
 
     return server_response
 
-
 async def fetch(session, url):
     async with session.get(url) as response:
         return await response.json()
-
 
 # server implementation
 async def handle_connection(reader, writer):
@@ -232,14 +222,13 @@ async def handle_connection(reader, writer):
         await handle_UPDATE_CLIENT_message(received_message)
 
     elif message_type == 'WHATSAT':
-        server_response = await handle_WHATSAT_message(received_message, time_received)
+        server_response = await handle_WHATSAT_message(received_message)
 
     if message_type != 'UPDATE_CLIENT':
         log_file.write("SENDING: " + server_response)
         writer.write(server_response.encode())
         await writer.drain()
         writer.close()
-
 
 def main():
     # command line argument checking
@@ -257,8 +246,7 @@ def main():
 
     global log_file
     log_file = open(log_file_name, 'a+') # open for reading and appending
-
-    # check about doing .close or something like that
+    log_file.truncate(0)
 
     # set up event loop
     global event_loop
@@ -270,7 +258,7 @@ def main():
     print('Serving on {}'.format(server.sockets[0].getsockname()))
     try:
         event_loop.run_forever()
-    except KeyBoardInterrupt:
+    except KeyboardInterrupt:
         pass
 
     # close the server
