@@ -97,11 +97,11 @@ async def handle_UPDATE_CLIENT_message(message):
         if time_sent > time_client_sent_message:
             clients[client_ID] = message[2:]
             flood_message = ' '.join(message)
-            asyncio.ensure_future(flood(message, server_name))
+            asyncio.ensure_future(flood(flood_message, server_name))
     else: # client_ID is NOT in clients -> flood message
         clients[client_ID] = message[2:]
         flood_message = ' '.join(message)
-        asyncio.ensure_future(flood(message, server_name))
+        asyncio.ensure_future(flood(flood_message, server_name))
 
 # format for IAMAT message:
 # IAMAT [Client ID] [Coordinates] [Timestamp (POSIX)]
@@ -124,7 +124,7 @@ async def handle_IAMAT_message(message, time_received):
     
     # form server response
     copy_of_client_data = ' '.join(message[1:])
-    server_response = ' '.join(['AT',server_name,time_difference,copy_of_client_data]) + "\n"
+    server_response = ' '.join(['AT',server_name,time_difference,copy_of_client_data])
 
     # current server must inform other servers about the updated location
     # we flood an UPDATE_CLIENT message to all the other servers
@@ -132,16 +132,16 @@ async def handle_IAMAT_message(message, time_received):
     flood_message_list.append(time_received)
     flood_message_list.append(server_name)
 
-    flood_message = "UPDATE_CLIENT " + ' '.join(flood_message_list) + "\n"
+    flood_message = "UPDATE_CLIENT " + ' '.join(flood_message_list)
     asyncio.ensure_future(flood(flood_message, server_name))
 
     return server_response
 
-async def flood(message, server_name):
-    for connection in server_connections:
-        log_file.write("Trying to connect server " + connection + " to port " + str(server_ports[connection]) + "\n")
+async def flood(message, server):
+    for curr_server in server_connections[server]:
+        log_file.write("Trying to connect server " + curr_server + " to port " + str(server_ports[curr_server]) + "\n")
         try:
-            reader,writer = await asyncio.open_connection(host='127.0.0.1', port=server_ports[connection], loop=event_loop)
+            reader,writer = await asyncio.open_connection(host='127.0.0.1', port=server_ports[curr_server], loop=event_loop)
             log_file.write("Successfully connected.\n")
             writer.write(message.encode())
             await writer.drain()
@@ -177,7 +177,7 @@ async def handle_WHATSAT_message(message):
     if time_difference[0] != '-':
         time_difference = '+' + time_difference
 
-    server_response = ' '.join(['AT',server_name,time_difference,client_ID,coordinates,time_client_sent]) + "\n"
+    server_response = ' '.join(['AT',clients_server_name,time_difference,client_ID,coordinates,time_client_sent])
 
     # request Google Places API for location data
     async with aiohttp.ClientSession() as session:
@@ -199,11 +199,12 @@ async def fetch(session, url):
 # server implementation
 async def handle_connection(reader, writer):
     
-    data = await reader.readline()
+    # READLINE OR READ(1000)
+    data = await reader.read(1000)
     original_received_message = data.decode()
     time_received = time.time()
 
-    log_file.write("RECEIVED: " + original_received_message)
+    log_file.write("RECEIVED: " + original_received_message + "\n")
 
     received_message = original_received_message.strip() # remove leading and trailing spaces
     received_message = received_message.split() # convert message into a list of strings
@@ -225,7 +226,7 @@ async def handle_connection(reader, writer):
         server_response = await handle_WHATSAT_message(received_message)
 
     if message_type != 'UPDATE_CLIENT':
-        log_file.write("SENDING: " + server_response)
+        log_file.write("SENDING: " + server_response + "\n")
         writer.write(server_response.encode())
         await writer.drain()
         writer.close()
@@ -245,7 +246,7 @@ def main():
     log_file_name = server_name + "-log.txt"
 
     global log_file
-    log_file = open(log_file_name, 'a+') # open for reading and appending
+    log_file = open(log_file_name, 'w+') # open for reading and appending
     log_file.truncate(0)
 
     # set up event loop
