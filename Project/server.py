@@ -145,6 +145,7 @@ async def flood(message, server):
             log_file.write("Successfully connected.\n")
             writer.write(message.encode())
             await writer.drain()
+            writer.write_eof()
             writer.close()
         except:
             log_file.write("Failed to connect.\n")
@@ -229,6 +230,7 @@ async def handle_connection(reader, writer):
         log_file.write("SENDING: " + server_response + "\n")
         writer.write(server_response.encode())
         await writer.drain()
+        writer.write_eof()
         writer.close()
 
 def main():
