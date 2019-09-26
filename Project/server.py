@@ -30,7 +30,7 @@ server_ports = {
 # [Coordinates, Time client sent message, Time server received message, Server name]
 clients = {}
 
-API_KEY = 'AIzaSyDjQOOtBBnxqcXUKbPtpSqBPzHZU1_nJl0'
+API_KEY = 'hidden'
 
 # input: coordinate string: +34.068930-118.445127
 # output: (latitude, longitude) tuple: ('+34.068930', '-118.445127')
